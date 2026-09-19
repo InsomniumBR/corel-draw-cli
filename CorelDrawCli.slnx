@@ -6,6 +6,7 @@
     <Project Path="src/Corel.Verbs/Corel.Verbs.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Corel.Automation.Tests/Corel.Automation.Tests.csproj" />
     <Project Path="tests/Corel.Schema.Tests/Corel.Schema.Tests.csproj" />
     <Project Path="tests/Corel.Verbs.Tests/Corel.Verbs.Tests.csproj" />
   </Folder>

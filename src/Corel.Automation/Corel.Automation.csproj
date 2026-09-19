@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Corel.Schema\Corel.Schema.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Corel.Automation.Tests" />
+  </ItemGroup>
+
 </Project>
