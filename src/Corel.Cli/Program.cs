@@ -1,12 +1,12 @@
 using Corel.Automation;
 using Corel.Cli;
-using Corel.Cli.Commands;
 using Corel.Schema;
 
 if (args.Length == 0)
 {
     Console.WriteLine("Usage: corel <command> [args...]");
-    Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size, shape <create-rect|list|delete>");
+    Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size,");
+    Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>, shell");
     return 1;
 }
 
@@ -15,7 +15,7 @@ if (args.Length == 0)
 using var host = new StaThreadHost();
 try
 {
-    return host.Invoke(() => Dispatch(rest, corelVersion));
+    return host.Invoke(() => Run(rest, corelVersion));
 }
 catch (Exception ex)
 {
@@ -23,29 +23,15 @@ catch (Exception ex)
     return 1;
 }
 
-static int Dispatch(string[] args, string? corelVersion)
+static int Run(string[] args, string? corelVersion)
 {
-    string command = args[0];
-    string[] commandArgs = args[1..];
-
-    // These two don't need a live COM attach at all.
-    if (command == "detect")
+    if (args[0] == "shell")
     {
-        return DetectCommand.Run(commandArgs);
-    }
-    if (command == "schema")
-    {
-        return SchemaCommands.Run(commandArgs);
+        (object shellApp, string? shellVersion) = Connect(corelVersion);
+        return Repl.Run(shellApp, shellVersion);
     }
 
-    (object app, string? resolvedVersion) = Connect(corelVersion);
-    return command switch
-    {
-        "raw" => RawCommands.Run(commandArgs, app),
-        "page" => PageCommands.Run(commandArgs, app, resolvedVersion),
-        "shape" => ShapeCommands.Run(commandArgs, app, resolvedVersion),
-        _ => UnknownCommand(command),
-    };
+    return CommandDispatcher.Dispatch(args, () => Connect(corelVersion));
 }
 
 static (object App, string? Version) Connect(string? corelVersion)
@@ -60,12 +46,6 @@ static (object App, string? Version) Connect(string? corelVersion)
         resolvedVersion = install.Version;
     }
     return (ComAttach.Attach(progId), resolvedVersion);
-}
-
-static int UnknownCommand(string command)
-{
-    Console.Error.WriteLine($"Unknown command '{command}'.");
-    return 1;
 }
 
 static (string[] Remaining, string? Value) ExtractGlobalFlag(string[] args, string flagName)
