@@ -7,7 +7,7 @@ if (args.Length == 0)
     Console.WriteLine("Usage: corel <command> [args...]");
     Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size,");
     Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>,");
-    Console.WriteLine("          macro install --name N --file F.bas,");
+    Console.WriteLine("          doc <new|save [--as path]>, macro install --name N --file F.bas,");
     Console.WriteLine("          script run <file.cdx> [--force], shell");
     return 1;
 }
