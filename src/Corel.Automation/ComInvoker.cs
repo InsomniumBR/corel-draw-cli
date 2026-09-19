@@ -20,9 +20,15 @@ public static class ComInvoker
     private static object?[] NormalizeArgs(object?[] args)
         => Array.ConvertAll(args, a => a ?? Type.Missing);
 
+    /// <summary>
+    /// Combines GetProperty|InvokeMethod because not every COM library agrees on which
+    /// one an indexed accessor is: CorelDRAW's own collections expose "Item" as a true
+    /// dispinterface property, but VBIDE's (VBProjects, VBComponents, etc.) expose it as
+    /// a method - GetProperty alone throws DISP_E_MEMBERNOTFOUND on the latter.
+    /// </summary>
     public static object? Get(object target, string name, params object?[] args)
         => target.GetType().InvokeMember(
-            name, BindingFlags.GetProperty, null, target, NormalizeArgs(args));
+            name, BindingFlags.GetProperty | BindingFlags.InvokeMethod, null, target, NormalizeArgs(args));
 
     public static void Set(object target, string name, object value)
         => target.GetType().InvokeMember(
