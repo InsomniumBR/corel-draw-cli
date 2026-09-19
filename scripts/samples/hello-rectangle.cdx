@@ -1,0 +1,7 @@
+# hello-rectangle.cdx - minimal example script.
+# Same grammar as the interactive shell, one command per line, no `corel` prefix.
+# Run with: corel script run scripts/samples/hello-rectangle.cdx
+
+page size --width 12 --height 19 --unit in
+shape create-rect --left 0 --top 19 --right 3 --bottom 0
+shape list

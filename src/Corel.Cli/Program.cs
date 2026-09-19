@@ -6,16 +6,18 @@ if (args.Length == 0)
 {
     Console.WriteLine("Usage: corel <command> [args...]");
     Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size,");
-    Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>, shell");
+    Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>,");
+    Console.WriteLine("          script run <file.cdx> [--force], shell");
     return 1;
 }
 
-(string[] rest, string? corelVersion) = ExtractGlobalFlag(args, "--corel-version");
+(string[] afterVersion, string? corelVersion) = ExtractGlobalFlag(args, "--corel-version");
+(string[] rest, bool force) = ExtractBoolFlag(afterVersion, "--force");
 
 using var host = new StaThreadHost();
 try
 {
-    return host.Invoke(() => Run(rest, corelVersion));
+    return host.Invoke(() => Run(rest, corelVersion, force));
 }
 catch (Exception ex)
 {
@@ -23,12 +25,23 @@ catch (Exception ex)
     return 1;
 }
 
-static int Run(string[] args, string? corelVersion)
+static int Run(string[] args, string? corelVersion, bool force)
 {
     if (args[0] == "shell")
     {
         (object shellApp, string? shellVersion) = Connect(corelVersion);
         return Repl.Run(shellApp, shellVersion);
+    }
+
+    if (args[0] == "script" && args.Length > 1 && args[1] == "run")
+    {
+        if (args.Length < 3)
+        {
+            Console.Error.WriteLine("Usage: corel script run <file.cdx> [--force]");
+            return 1;
+        }
+        (object scriptApp, string? scriptVersion) = Connect(corelVersion);
+        return ScriptRunner.Run(args[2], scriptApp, scriptVersion, force);
     }
 
     return CommandDispatcher.Dispatch(args, () => Connect(corelVersion));
@@ -64,4 +77,22 @@ static (string[] Remaining, string? Value) ExtractGlobalFlag(string[] args, stri
         }
     }
     return ([.. rest], value);
+}
+
+static (string[] Remaining, bool Present) ExtractBoolFlag(string[] args, string flagName)
+{
+    var rest = new List<string>();
+    bool present = false;
+    foreach (string arg in args)
+    {
+        if (arg == flagName)
+        {
+            present = true;
+        }
+        else
+        {
+            rest.Add(arg);
+        }
+    }
+    return ([.. rest], present);
 }
