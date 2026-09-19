@@ -2,14 +2,27 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <Platforms>x64</Platforms>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Corel.Cli</RootNamespace>
     <AssemblyName>corel</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>corel</ToolCommandName>
+    <PackageId>corel-draw-cli</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>InsomniumBR</Authors>
+    <Description>CLI and interactive shell for driving a running CorelDRAW instance via COM automation.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/InsomniumBR/corel-draw-cli</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Corel.Automation\Corel.Automation.csproj" />
