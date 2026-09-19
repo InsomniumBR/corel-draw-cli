@@ -1,0 +1,93 @@
+[
+  {
+    "name": "docs.list",
+    "group": "docs",
+    "raw": { "get": "Documents" },
+    "requiresInterface": "IVGApplication",
+    "requiresMember": "Documents"
+  },
+  {
+    "name": "docs.active",
+    "group": "docs",
+    "raw": { "get": "ActiveDocument" },
+    "requiresInterface": "IVGApplication",
+    "requiresMember": "ActiveDocument"
+  },
+  {
+    "name": "doc.save",
+    "group": "doc",
+    "raw": { "call": "ActiveDocument.Save" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Save"
+  },
+  {
+    "name": "doc.unit.get",
+    "group": "doc",
+    "raw": { "get": "ActiveDocument.Unit" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Unit"
+  },
+  {
+    "name": "doc.unit.set",
+    "group": "doc",
+    "raw": { "set": "ActiveDocument.Unit" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Unit"
+  },
+  {
+    "name": "page.size.get",
+    "group": "page",
+    "raw": { "get": "ActiveDocument.ActivePage.SizeWidth" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "SizeWidth"
+  },
+  {
+    "name": "page.size.set",
+    "group": "page",
+    "raw": { "call": "ActiveDocument.ActivePage.SetSize" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "SetSize"
+  },
+  {
+    "name": "layer.list",
+    "group": "layer",
+    "raw": { "get": "ActiveDocument.Layers" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Layers"
+  },
+  {
+    "name": "layer.active",
+    "group": "layer",
+    "raw": { "get": "ActiveDocument.ActiveLayer" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "ActiveLayer"
+  },
+  {
+    "name": "shape.create-rect",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreateRectangle" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreateRectangle"
+  },
+  {
+    "name": "shape.list",
+    "group": "shape",
+    "raw": { "get": "ActiveDocument.ActiveLayer.Shapes" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "Shapes"
+  },
+  {
+    "name": "shape.delete",
+    "group": "shape",
+    "raw": { "call": "Delete" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Delete"
+  },
+  {
+    "name": "macro.install",
+    "group": "macro",
+    "raw": { "call": "InitializeVBA" },
+    "requiresInterface": "IVGApplication",
+    "requiresMember": "InitializeVBA"
+  }
+]
