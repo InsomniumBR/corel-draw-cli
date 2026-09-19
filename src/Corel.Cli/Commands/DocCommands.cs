@@ -42,7 +42,16 @@ public static class DocCommands
 
         object options = ComInvoker.Call(app, "CreateStructSaveAsOptions")!;
         ComInvoker.Set(options, "Overwrite", true);
-        ComInvoker.Set(options, "EmbedVBAProject", true);
+        // Only request VBA embedding when actually needed - it's an opt-in, not the
+        // default, regardless of any interaction with the interactive "Save Drawing"
+        // dialog bug tracked separately (see the task board): CreateStructSaveAsOptions
+        // defaults EmbedVBAProject to true on its own, so this is a deliberate override,
+        // not a workaround for that bug.
+        if (reader.Flag("embed-vba") is not null)
+        {
+            ComInvoker.Call(app, "InitializeVBA");
+            ComInvoker.Set(options, "EmbedVBAProject", true);
+        }
         ComInvoker.Call(doc, "SaveAs", path, options);
         Console.WriteLine($"Saved to {path}");
         return 0;
