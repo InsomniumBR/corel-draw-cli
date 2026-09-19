@@ -1,0 +1,10 @@
+.claude/tasks/
+
+# .NET build output
+bin/
+obj/
+*.user
+
+# IDE
+.vs/
+.idea/

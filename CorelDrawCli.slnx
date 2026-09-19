@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Corel.Automation/Corel.Automation.csproj" />
+    <Project Path="src/Corel.Cli/Corel.Cli.csproj" />
+    <Project Path="src/Corel.Schema/Corel.Schema.csproj" />
+    <Project Path="src/Corel.Verbs/Corel.Verbs.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Corel.Schema.Tests/Corel.Schema.Tests.csproj" />
+    <Project Path="tests/Corel.Verbs.Tests/Corel.Verbs.Tests.csproj" />
+  </Folder>
+</Solution>
