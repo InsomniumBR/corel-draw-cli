@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Corel.Automation.Tests/Corel.Automation.Tests.csproj" />
+    <Project Path="tests/Corel.Cli.Tests/Corel.Cli.Tests.csproj" />
     <Project Path="tests/Corel.Schema.Tests/Corel.Schema.Tests.csproj" />
     <Project Path="tests/Corel.Verbs.Tests/Corel.Verbs.Tests.csproj" />
   </Folder>

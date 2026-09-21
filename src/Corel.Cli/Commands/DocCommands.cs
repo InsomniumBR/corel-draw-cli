@@ -52,7 +52,7 @@ public static class DocCommands
             ComInvoker.Call(app, "InitializeVBA");
             ComInvoker.Set(options, "EmbedVBAProject", true);
         }
-        ComInvoker.Call(doc, "SaveAs", path, options);
+        SaveDialogWatchdog.RunWithAutoDismiss(() => ComInvoker.Call(doc, "SaveAs", path, options));
         Console.WriteLine($"Saved to {path}");
         return 0;
     }

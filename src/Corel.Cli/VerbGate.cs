@@ -14,6 +14,12 @@ public static class VerbGate
 {
     private static readonly VerbRegistry Registry = VerbRegistry.LoadEmbedded();
 
+    // Cached per process + version: the manifest is a ~1MB JSON file, and this gate
+    // fires on every curated command - re-reading it from disk on each call added real,
+    // avoidable latency between COM calls in a script/REPL session (many calls in a
+    // row), which is worth eliminating regardless of any other effect.
+    private static readonly Dictionary<string, CapabilityManifest?> ManifestCache = [];
+
     public static void WarnIfUnavailable(string verbName, string? corelVersion)
     {
         VerbDefinition? verb = Registry.Find(verbName);
@@ -22,7 +28,11 @@ public static class VerbGate
             return;
         }
 
-        CapabilityManifest? manifest = InstallStore.LoadManifest(corelVersion);
+        if (!ManifestCache.TryGetValue(corelVersion, out CapabilityManifest? manifest))
+        {
+            manifest = InstallStore.LoadManifest(corelVersion);
+            ManifestCache[corelVersion] = manifest;
+        }
         if (manifest is null)
         {
             return;

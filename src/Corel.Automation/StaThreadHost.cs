@@ -8,6 +8,19 @@ namespace Corel.Automation;
 /// session, or script run is dispatched through - one thread for the whole session, not
 /// one per call, so the same RCWs stay valid across a sequence of commands.
 /// </summary>
+/// <remarks>
+/// A previous version of this class ran a hand-rolled Win32 GetMessage/DispatchMessage
+/// loop here, on the theory that CorelDRAW's SaveAs intermittently falling back to an
+/// interactive "Save Drawing" dialog was caused by this thread never pumping Windows
+/// messages. That turned out to be the wrong fix: STA apartments already pump messages
+/// implicitly during a blocking outgoing COM call (to service reentrant incoming calls
+/// without deadlocking) - layering a second, independent GetMessage loop on top of that
+/// competes with COM's own internal pump for the same thread's message queue, and made
+/// things measurably worse (introduced RPC_E_CALL_FAILED / 0x800706BE mid-script,
+/// which never happened with the plain BlockingCollection wait below). Back to the
+/// simple version; the "Save Drawing" dialog is mitigated separately via
+/// <see cref="SaveDialogWatchdog"/> rather than by pumping here.
+/// </remarks>
 public sealed class StaThreadHost : IDisposable
 {
     private readonly BlockingCollection<Action> _queue = [];

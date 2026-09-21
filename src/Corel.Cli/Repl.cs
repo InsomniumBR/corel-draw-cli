@@ -52,5 +52,49 @@ public static class Repl
             : $"{count} document(s) open. Use `docs list` / `docs use <name>`.");
     }
 
-    internal static string[] Tokenize(string line) => line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    /// <summary>
+    /// Splits on whitespace like a shell would, honoring double-quoted segments
+    /// (needed for paths - the naive `Split(' ')` this replaced left literal quote
+    /// characters in the token, e.g. `"C:\...\file.cdr"` including the quotes, which
+    /// silently made CorelDRAW fail the save against a malformed path). Quotes are
+    /// stripped from the resulting token, not preserved.
+    /// </summary>
+    internal static string[] Tokenize(string line)
+    {
+        List<string> tokens = [];
+        var current = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        bool tokenStarted = false;
+
+        foreach (char c in line)
+        {
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                tokenStarted = true;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c) && !inQuotes)
+            {
+                if (tokenStarted)
+                {
+                    tokens.Add(current.ToString());
+                    current.Clear();
+                    tokenStarted = false;
+                }
+                continue;
+            }
+
+            current.Append(c);
+            tokenStarted = true;
+        }
+
+        if (tokenStarted)
+        {
+            tokens.Add(current.ToString());
+        }
+
+        return [.. tokens];
+    }
 }

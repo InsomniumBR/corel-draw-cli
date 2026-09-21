@@ -29,4 +29,8 @@
     <ProjectReference Include="..\Corel.Verbs\Corel.Verbs.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Corel.Cli.Tests" />
+  </ItemGroup>
+
 </Project>
