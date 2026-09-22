@@ -1,5 +1,3 @@
-using Corel.Cli;
-
 namespace Corel.Cli.Tests;
 
 // Routing-only coverage for CommandDispatcher.Dispatch as it exists TODAY (task 21,
@@ -65,7 +63,7 @@ public class CommandDispatcherTests
     [Theory]
     [InlineData("raw", "Usage: corel raw <get|set|call> <path> [args...]")]
     [InlineData("page", "Usage: corel page size [--width W --height H] [--unit in|mm|...]")]
-    [InlineData("shape", "Usage: corel shape <create-rect|list|delete> ...")]
+    [InlineData("shape", "Usage: corel shape <create-rect|list|delete|rename> ...")]
     [InlineData("docs", "Usage: corel docs <list|use|active>")]
     [InlineData("doc", "Usage: corel doc <new|save>")]
     [InlineData("macro", "Usage: corel macro install --name <ModuleName> --file <path.bas>")]

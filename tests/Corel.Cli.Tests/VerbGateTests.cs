@@ -1,5 +1,3 @@
-using Corel.Cli;
-
 namespace Corel.Cli.Tests;
 
 // VerbGate.WarnIfUnavailable is tightly coupled to InstallStore's hardcoded

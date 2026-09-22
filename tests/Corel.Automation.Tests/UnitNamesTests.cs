@@ -1,5 +1,3 @@
-using Corel.Automation;
-
 namespace Corel.Automation.Tests;
 
 public class UnitNamesTests

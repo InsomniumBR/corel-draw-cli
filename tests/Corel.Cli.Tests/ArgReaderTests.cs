@@ -1,5 +1,4 @@
 using System.Globalization;
-using Corel.Cli;
 
 namespace Corel.Cli.Tests;
 
