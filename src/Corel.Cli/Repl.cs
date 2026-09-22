@@ -1,3 +1,4 @@
+using System.Text;
 using Corel.Automation;
 
 namespace Corel.Cli;
@@ -9,39 +10,57 @@ namespace Corel.Cli;
 /// </summary>
 public static class Repl
 {
-    public static int Run(object app, string? corelVersion)
+    public static int Run(CorelSession session)
     {
-        object? version = ComInvoker.Get(app, "Version");
+        object? version = ComInvoker.Get(session.App, "Version");
         Console.WriteLine($"corel-draw-cli - connected to CorelDRAW ({version}).");
-        PrintDocsBanner(app);
-        Console.WriteLine("Type `exit` or `quit` to leave.");
+        PrintDocsBanner(session.App);
+        Console.WriteLine("Type `help` for commands, `exit` or `quit` to leave.");
 
+        return RunLoop(Console.In, tokens => CommandDispatcher.Dispatch(tokens, session));
+    }
+
+    /// <summary>The read-dispatch loop, decoupled from COM. Returns the exit code of the last
+    /// command that ran, so a piped session propagates a real status.</summary>
+    internal static int RunLoop(TextReader input, Func<string[], int> dispatch)
+    {
+        int lastExitCode = 0;
         while (true)
         {
             Console.Write("corel> ");
-            string? line = Console.ReadLine();
-            if (line is null || line.Trim() is "exit" or "quit")
+            string? line = input.ReadLine();
+            // A piped session's first line can carry a UTF-8 BOM, which would otherwise
+            // become part of the command name.
+            string trimmed = line?.TrimStart('﻿').Trim() ?? "";
+            if (line is null || trimmed is "exit" or "quit")
             {
                 break;
             }
 
-            string trimmed = line.Trim();
             if (trimmed.Length == 0 || trimmed.StartsWith('#'))
             {
                 continue;
             }
 
+            if (!TryTokenize(trimmed, out string[] tokens, out string? tokenError))
+            {
+                Console.Error.WriteLine($"Error: {tokenError}");
+                lastExitCode = 1;
+                continue;
+            }
+
             try
             {
-                CommandDispatcher.Dispatch(Tokenize(trimmed), () => (app, corelVersion));
+                lastExitCode = dispatch(tokens);
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Error: {ErrorMessages.Friendly(ex)}");
+                lastExitCode = 1;
             }
         }
 
-        return 0;
+        return lastExitCode;
     }
 
     private static void PrintDocsBanner(object app)
@@ -52,25 +71,35 @@ public static class Repl
             : $"{count} document(s) open. Use `docs list` / `docs use <name>`.");
     }
 
-    /// <summary>
-    /// Splits on whitespace like a shell would, honoring double-quoted segments
-    /// (needed for paths - the naive `Split(' ')` this replaced left literal quote
-    /// characters in the token, e.g. `"C:\...\file.cdr"` including the quotes, which
-    /// silently made CorelDRAW fail the save against a malformed path). Quotes are
-    /// stripped from the resulting token, not preserved.
-    /// </summary>
+    /// <summary>Splits on whitespace like a shell would, honoring double-quoted segments and
+    /// stripping their quotes. Inside a quoted segment a doubled quote is a literal quote;
+    /// backslash is never an escape, because Windows paths are full of them.</summary>
     internal static string[] Tokenize(string line)
+        => TryTokenize(line, out string[] tokens, out string? error)
+            ? tokens
+            : throw new FormatException(error);
+
+    internal static bool TryTokenize(string line, out string[] tokens, out string? error)
     {
-        List<string> tokens = [];
-        var current = new System.Text.StringBuilder();
+        List<string> result = [];
+        var current = new StringBuilder();
         bool inQuotes = false;
         bool tokenStarted = false;
 
-        foreach (char c in line)
+        for (int i = 0; i < line.Length; i++)
         {
+            char c = line[i];
             if (c == '"')
             {
-                inQuotes = !inQuotes;
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Append('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
                 tokenStarted = true;
                 continue;
             }
@@ -79,7 +108,7 @@ public static class Repl
             {
                 if (tokenStarted)
                 {
-                    tokens.Add(current.ToString());
+                    result.Add(current.ToString());
                     current.Clear();
                     tokenStarted = false;
                 }
@@ -90,11 +119,20 @@ public static class Repl
             tokenStarted = true;
         }
 
-        if (tokenStarted)
+        if (inQuotes)
         {
-            tokens.Add(current.ToString());
+            tokens = [];
+            error = $"unterminated quote in: {line}";
+            return false;
         }
 
-        return [.. tokens];
+        if (tokenStarted)
+        {
+            result.Add(current.ToString());
+        }
+
+        tokens = [.. result];
+        error = null;
+        return true;
     }
 }

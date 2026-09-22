@@ -1,85 +1,138 @@
 namespace Corel.Cli.Tests;
 
-// Routing-only coverage for CommandDispatcher.Dispatch as it exists TODAY (task 21,
-// 2026-09-22). Task 16 (running concurrently in its own worktree) is planned to change
-// dispatch order specifically around --help and unknown commands (review finding UX-2) -
-// Dispatch_UnknownCommand_StillCallsConnect_ThenReturnsError below locks in the CURRENT
-// (undesirable) ordering and is expected to need re-checking, possibly removal, once
-// task 16 merges. The other tests here (routing table + detect/schema connect-laziness)
-// are not something task 16 intends to change and should keep passing.
-//
-// "detect" is deliberately NOT exercised here: DetectCommand.Run always performs a real
-// registry scan and overwrites the real %LOCALAPPDATA%\corel-draw-cli\installs.json,
-// which this project's own testing convention (AGENTS.md "Tests" section: pure logic
-// only) argues against. "schema" with no further args hits the exact same
-// early-return-before-connect() code shape with no side effect at all, and stands in as
-// the representative case for that rule instead.
+[Collection("console")]
 public class CommandDispatcherTests
 {
-    [Fact]
-    public void Dispatch_EmptyArgs_ReturnsUsageError_WithoutCallingConnect()
-    {
-        bool connectCalled = false;
-        (object, string?) Connect() { connectCalled = true; return (new object(), null); }
-
-        int result = -1;
-        string stderr = ConsoleCapture.StdErr(() => result = CommandDispatcher.Dispatch([], Connect));
-
-        Assert.Equal(1, result);
-        Assert.False(connectCalled);
-        Assert.Contains("Usage: corel <command> [args...]", stderr);
-    }
+    /// <summary>A session that fails loudly if anything tries to attach to CorelDRAW.</summary>
+    private static CorelSession NeverConnects()
+        => new("17", () => throw new InvalidOperationException("this path must not connect to CorelDRAW"));
 
     [Fact]
-    public void Dispatch_Schema_RoutesToSchemaCommands_WithoutCallingConnect()
+    public void Dispatch_ShowsOverviewHelpWithoutConnecting()
     {
-        bool connectCalled = false;
-        (object, string?) Connect() { connectCalled = true; return (new object(), null); }
-
-        int result = -1;
-        string stderr = ConsoleCapture.StdErr(() => result = CommandDispatcher.Dispatch(["schema"], Connect));
-
-        Assert.Equal(1, result);
-        Assert.False(connectCalled);
-        Assert.Contains("Usage: corel schema generate [--version N]", stderr);
-    }
-
-    [Fact]
-    public void Dispatch_UnknownCommand_StillCallsConnect_ThenReturnsError()
-    {
-        // Baseline/current behavior only (review finding UX-2, owned by task 16): the
-        // dispatcher connects to COM BEFORE checking whether the command is even known.
-        bool connectCalled = false;
-        (object, string?) Connect() { connectCalled = true; return (new object(), null); }
-
-        int result = -1;
-        string stderr = ConsoleCapture.StdErr(() => result = CommandDispatcher.Dispatch(["bogus"], Connect));
-
-        Assert.Equal(1, result);
-        Assert.True(connectCalled);
-        Assert.Contains("Unknown command 'bogus'.", stderr);
+        using var console = new ConsoleCapture();
+        Assert.Equal(0, CommandDispatcher.Dispatch(["help"], NeverConnects()));
+        Assert.Contains("shape create-rect", console.Out);
     }
 
     [Theory]
-    [InlineData("raw", "Usage: corel raw <get|set|call> <path> [args...]")]
-    [InlineData("page", "Usage: corel page size [--width W --height H] [--unit in|mm|...]")]
-    [InlineData("shape", "Usage: corel shape <create-rect|list|delete|rename> ...")]
-    [InlineData("docs", "Usage: corel docs <list|use|active>")]
-    [InlineData("doc", "Usage: corel doc <new|save>")]
-    [InlineData("macro", "Usage: corel macro install --name <ModuleName> --file <path.bas>")]
-    public void Dispatch_RoutesKnownCommandName_ToItsOwnHandler(string command, string expectedUsageMessage)
+    [InlineData("--help")]
+    [InlineData("-h")]
+    public void Dispatch_TreatsTopLevelHelpFlagsAsHelp(string flag)
     {
-        // Each handler's own "missing sub-args" branch fires before it ever touches the
-        // `app` object, so a plain placeholder object is enough to prove routing without
-        // needing a real (or fake) COM object.
-        bool connectCalled = false;
-        (object, string?) Connect() { connectCalled = true; return (new object(), null); }
+        using var console = new ConsoleCapture();
+        Assert.Equal(0, CommandDispatcher.Dispatch([flag], NeverConnects()));
+        Assert.Contains("Usage: corel", console.Out);
+    }
 
-        int result = -1;
-        string stderr = ConsoleCapture.StdErr(() => result = CommandDispatcher.Dispatch([command], Connect));
+    [Fact]
+    public void Dispatch_ShowsPerCommandHelpForACommandFlaggedWithHelp()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(0, CommandDispatcher.Dispatch(["shape", "create-rect", "--help"], NeverConnects()));
+        Assert.Contains("--corner-radius", console.Out);
+    }
 
-        Assert.Equal(1, result);
-        Assert.True(connectCalled);
-        Assert.Contains(expectedUsageMessage, stderr);
+    [Fact]
+    public void Dispatch_ShowsEveryCommandInAGroupForGroupHelp()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(0, CommandDispatcher.Dispatch(["help", "docs"], NeverConnects()));
+        Assert.Contains("corel docs use", console.Out);
+        Assert.Contains("corel docs active", console.Out);
+    }
+
+    [Fact]
+    public void Dispatch_RejectsHelpForAnUnknownCommand()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["help", "nonsense"], NeverConnects()));
+        Assert.Contains("Unknown command 'nonsense'", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_RejectsAnUnknownCommandWithoutConnecting()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["frobnicate"], NeverConnects()));
+        Assert.Contains("Unknown command 'frobnicate'", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_RejectsAMalformedKnownCommandWithoutConnecting()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["shape", "create-rect", "--left", "0"], NeverConnects()));
+        Assert.Contains("missing required flag", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_RoutesScriptRunSoTheShellCanRunScriptsToo()
+    {
+        using var console = new ConsoleCapture();
+        using var script = new TempScript("shpae list\n");
+
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run", script.Path], NeverConnects()));
+
+        Assert.Contains("Unknown command 'shpae'", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_ValidatesAScriptBeforeConnecting()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run", @"Z:\nope\missing.cdx"], NeverConnects()));
+        Assert.Contains("Script file not found", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_RejectsScriptRunWithNoFileArgument()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run"], NeverConnects()));
+        Assert.Contains("expected at least 1", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_RefusesToStartAShellFromInsideASession()
+    {
+        using var console = new ConsoleCapture();
+        Assert.Equal(1, CommandDispatcher.Dispatch(["shell"], NeverConnects()));
+        Assert.Contains("interactive session", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_SafetyViolationsAbortAScriptUnlessForced()
+    {
+        using var console = new ConsoleCapture();
+        using var script = new TempScript("raw call Application.Shell cmd.exe\n");
+
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run", script.Path], NeverConnects()));
+
+        Assert.Contains("Preflight failed", console.Error);
+        Assert.Contains("Pass --force to run anyway", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_ForceWaivesSafetyAndProceedsToExecution()
+    {
+        using var console = new ConsoleCapture();
+        using var script = new TempScript("raw call Application.Shell cmd.exe\n");
+
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run", script.Path, "--force"], NeverConnects()));
+
+        Assert.Contains("--force given: running anyway.", console.Error);
+        Assert.Contains("this path must not connect to CorelDRAW", console.Error);
+    }
+
+    [Fact]
+    public void Dispatch_ForceNeverWaivesAMalformedCommand()
+    {
+        using var console = new ConsoleCapture();
+        using var script = new TempScript("shape delete --index abc\n");
+
+        Assert.Equal(1, CommandDispatcher.Dispatch(["script", "run", script.Path, "--force"], NeverConnects()));
+
+        Assert.Contains("is not a whole number", console.Error);
     }
 }
