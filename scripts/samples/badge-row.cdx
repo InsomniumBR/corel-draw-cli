@@ -1,0 +1,26 @@
+# badge-row.cdx - exercises the shape commands beyond create-rect: the other factories,
+# fill/outline, and align + distribute over a range of indexes.
+#
+#   corel script run scripts/samples/badge-row.cdx --vars UNIT=in
+#
+# Three badges laid out roughly, then squared up: aligned to each other's top edge and
+# spaced evenly. Indexes are 1-based and page-wide, newest shape first - `shape list`
+# after any command that adds or removes a shape, never assume they held still.
+
+doc new
+page size --width 10 --height 4 --unit {UNIT}
+
+shape create-rect --left 0.5 --top 3.2 --right 2.5 --bottom 1.2 --corner-radius 20
+shape create-ellipse --left 4.0 --top 3.6 --right 6.0 --bottom 1.6
+shape create-polygon --left 7.2 --top 3.0 --right 9.2 --bottom 1.0 --sides 6
+
+shape fill --index 1 --color 2E6F9E
+shape fill --index 2 --color C8553D
+shape fill --index 3 --color 5C8001
+shape outline --index 1 --width 0.02 --color 1A1A1A
+
+shape align --indexes 1,2,3 --vertical top
+shape distribute --indexes 1,2,3 --horizontal spacing
+
+shape create-text --text "three badges" --left 0.5 --bottom 0.4 --size 18
+shape list

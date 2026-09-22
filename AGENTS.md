@@ -76,6 +76,20 @@ slower for a sequence).
   double quotes and strips them. An **unterminated quote is an error**, not a silently
   accepted line. Backslash is never an escape (Windows paths are full of them) — to put
   a literal `"` in an argument, double it inside a quoted segment: `"say ""hi"""`.
+- **Shape indexes are page-wide and always shifting.** `--index`/`--indexes` is the
+  1-based position `shape list` prints, counted over `ActivePage.Shapes` — every layer,
+  not just the active one (the layer-scoped version silently listed a different set once
+  a second layer existed). Creation still targets the active layer. Indexes are z-order,
+  newest first, and anything that adds, deletes, duplicates, groups or reorders shapes
+  renumbers them: re-run `shape list` instead of reusing indexes computed earlier.
+- **`shape align --to page` moves the set as one block**, so the whole bounding box lands
+  on the page edge. The default, `--to shapes`, is the one that aligns each shape to the
+  first of them. There is no working "align every shape to the page edge separately" —
+  X7's `IVGShape.AlignToPage` does nothing and `IVGShapeRange.AlignToPage` aligns to the
+  range's first shape, both verified live, so neither is wired up.
+- **Colour is `--color RRGGBB`** (a leading `#` is fine), applied by assigning into the
+  shape's own `Fill.UniformColor`/`Outline.Color`. That also switches a no-fill shape to
+  a uniform fill, so there's no separate "enable fill" step.
 - **`--corel-version N` must come before the command**: `corel --corel-version 17 raw get
   ActiveDocument.Name`. Every other flag belongs to the command it's written on, so a
   command's own `--force`/`--vars` is never mistaken for a global one.
@@ -100,9 +114,32 @@ corel page size                                  # print active page size
 corel page size --width W --height H [--unit U]  # resize active page
 
 corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]
-corel shape list [--json]                        # list shapes on the active layer
+corel shape create-ellipse --left L --top T --right R --bottom B [--unit U] [--start-angle D] [--end-angle D] [--pie]
+corel shape create-polygon --left L --top T --right R --bottom B --sides N [--unit U] [--star]
+corel shape create-line --x1 X --y1 Y --x2 X --y2 Y [--unit U]
+corel shape create-text --text <string> --left L --bottom B [--paragraph --top T --right R] [--font F] [--size N] [--bold] [--unit U]
+
+corel shape list [--json]                        # list shapes on the active PAGE
 corel shape delete --index N                     # delete by 1-based position - remaining
                                                   # shapes renumber immediately after
+corel shape rename --index N --name <name>
+
+corel shape move --index N (--dx D --dy D | --x X --y Y)
+corel shape rotate --index N --degrees D [--center-x X --center-y Y]
+corel shape scale --index N (--width W --height H | --factor F)
+corel shape flip --index N --axis horizontal|vertical|both
+corel shape duplicate --index N [--offset-x X] [--offset-y Y]
+corel shape order --index N --to front|back|forward|backward
+
+corel shape group (--all | --indexes 1,3,5)
+corel shape ungroup --index N [--all-levels]
+corel shape combine (--all | --indexes 1,3,5)
+corel shape break-apart --index N
+corel shape align (--all | --indexes 1,3,5) [--horizontal left|center|right] [--vertical top|center|bottom] [--to shapes|page|page-center|grid]
+corel shape distribute (--all | --indexes 1,3,5) [--horizontal left|center|right|spacing] [--vertical top|center|bottom|spacing] [--over-page]
+
+corel shape fill --index N (--color RRGGBB | --none)
+corel shape outline --index N [--width W] [--color RRGGBB] [--none]
 
 corel macro install --name <Module> --file <path.bas>
 
@@ -260,10 +297,11 @@ path or a denylisted member past it.
    app a human may be watching, not a sandboxed test harness. Close documents you
    created for verification once you've confirmed the result.
 
-See `scripts/samples/` for two complete, verified real-world examples:
-`outer-aligned-12x19.cdx` and `same-size-combination-12x19.cdx` — both gallery-wall
-layouts where a page size is used purely as a size anchor for the largest rectangle(s),
-not a bounding box.
+See `scripts/samples/` for complete, verified examples: `outer-aligned-12x19.cdx` and
+`same-size-combination-12x19.cdx` are gallery-wall layouts where a page size is used
+purely as a size anchor for the largest rectangle(s), not a bounding box;
+`badge-row.cdx` exercises the other shape factories plus fill, outline, align and
+distribute.
 
 ## Extending the tool itself
 

@@ -84,13 +84,43 @@ Working on the CLI itself instead of just using it? Run straight from source:
 | `corel page size` | Print the active page's size |
 | `corel page size --width W --height H [--unit in\|mm\|...]` | Resize the active page |
 | `corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]` | Create a rectangle on the active layer |
-| `corel shape list [--json]` | List shapes on the active layer (type names resolved from the cached manifest; `--json` also dumps geometry) |
+| `corel shape create-ellipse --left L --top T --right R --bottom B [--unit U] [--start-angle D] [--end-angle D] [--pie]` | Create an ellipse; with the angles, an arc, or a pie slice with `--pie` |
+| `corel shape create-polygon --left L --top T --right R --bottom B --sides N [--unit U] [--star]` | Create a regular polygon (3 sides or more), or a star |
+| `corel shape create-line --x1 X --y1 Y --x2 X --y2 Y [--unit U]` | Create a straight line segment |
+| `corel shape create-text --text <string> --left L --bottom B [--paragraph --top T --right R] [--font F] [--size N] [--bold] [--unit U]` | Create artistic text at a point, or paragraph text in a frame with `--paragraph` (which then also needs `--top`/`--right`) |
+| `corel shape list [--json]` | List every shape on the active **page** (type names resolved from the cached manifest; `--json` also dumps geometry) |
 | `corel shape delete --index N` | Delete a shape by its 1-based position (see `shape list`). Remaining shapes renumber immediately after - re-run `shape list` before deleting another by index, don't delete a batch of indexes computed up front |
+| `corel shape rename --index N --name <name>` | Rename a shape by its 1-based position |
+| `corel shape move --index N (--dx D --dy D \| --x X --y Y)` | Move by an offset, or to an absolute position |
+| `corel shape rotate --index N --degrees D [--center-x X --center-y Y]` | Rotate about the shape's own centre, or an explicit one |
+| `corel shape scale --index N (--width W --height H \| --factor F)` | Resize to an exact size, or stretch by a factor |
+| `corel shape flip --index N --axis horizontal\|vertical\|both` | Mirror the shape |
+| `corel shape duplicate --index N [--offset-x X] [--offset-y Y]` | Duplicate, optionally offset from the original |
+| `corel shape order --index N --to front\|back\|forward\|backward` | Change the shape's z-order position |
+| `corel shape group (--all \| --indexes 1,3,5)` | Group several shapes into one |
+| `corel shape ungroup --index N [--all-levels]` | Ungroup a group shape, one level or all of them |
+| `corel shape combine (--all \| --indexes 1,3,5)` | Combine several shapes into one curve |
+| `corel shape break-apart --index N` | Split a combined curve back into separate shapes |
+| `corel shape fill --index N (--color RRGGBB \| --none)` | Apply or remove a uniform fill |
+| `corel shape outline --index N [--width W] [--color RRGGBB] [--none]` | Set outline width and/or colour, or remove the outline |
+| `corel shape align (--all \| --indexes 1,3,5) [--horizontal left\|center\|right] [--vertical top\|center\|bottom] [--to shapes\|page\|page-center\|grid]` | Align the shapes to the first of them (the default, `--to shapes`), or move them as one block to the page edge, page centre or grid |
+| `corel shape distribute (--all \| --indexes 1,3,5) [--horizontal left\|center\|right\|spacing] [--vertical top\|center\|bottom\|spacing] [--over-page]` | Space the shapes evenly across their own extent, or the whole page |
 | `corel macro install --name <Module> --file <path.bas>` | Inject VBA source into the active document's own VBA project |
 | `corel help [command]` | Full usage for everything, or one command — never connects to COM |
 
 Unit names accepted anywhere a `--unit` flag appears: `in`, `mm`, `cm`, `pt`, `px`, `ft`,
 `yd`, `pica` (and a few long-form aliases).
+
+Every `--index`/`--indexes` is the 1-based position `shape list` prints, counted over the
+**whole active page**, not the active layer — a document with more than one layer used to
+make the layer-scoped listing silently report a different set than the one you could see.
+Creation still goes to the active layer, because CorelDRAW's shape factories live there.
+Indexes are z-order, newest first, and any command that adds, removes, groups or reorders
+shapes renumbers them — re-run `shape list` rather than reusing indexes across commands.
+
+`shape align`'s default (`--to shapes`) aligns every chosen shape to the first one in the
+range. `--to page`, `page-center` and `grid` instead move the whole set as one block, so
+its bounding box lands on that reference — they do not align each shape separately.
 
 `corel` with no arguments prints the same overview and exits 0 — it's a deliberate
 "show usage", not an error, so it works as an install check. `corel --help`, `corel -h`
