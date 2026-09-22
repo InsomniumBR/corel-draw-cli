@@ -25,7 +25,7 @@ public static class RawCommands
         switch (op)
         {
             case "get":
-                Console.WriteLine(ComInvoker.ResolvePath(app, path));
+                Console.WriteLine(FormatValue(ComInvoker.ResolvePath(app, path)));
                 return 0;
 
             case "set":
@@ -50,6 +50,19 @@ public static class RawCommands
                 Console.Error.WriteLine($"Unknown raw operation '{op}'. Expected get|set|call.");
                 return 1;
         }
+    }
+
+    /// <summary>Appends a COM object's resolved interface name so a bare "System.__ComObject" isn't the only output.</summary>
+    private static string FormatValue(object? value)
+    {
+        if (value is null)
+        {
+            return string.Empty;
+        }
+
+        string text = value.ToString() ?? string.Empty;
+        string? typeName = ComTypeName.TryResolve(value);
+        return typeName is not null ? $"{text} ({typeName})" : text;
     }
 
     /// <summary>The literal string "null" maps to Type.Missing via ComInvoker's null convention.</summary>

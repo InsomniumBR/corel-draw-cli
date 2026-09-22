@@ -1,9 +1,18 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Corel.Automation;
+using Corel.Schema;
 
 namespace Corel.Cli.Commands;
 
 public static class ShapeCommands
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     public static int Run(string[] args, object app, string? corelVersion)
     {
         if (args.Length == 0)
@@ -18,7 +27,7 @@ public static class ShapeCommands
         return sub switch
         {
             "create-rect" => CreateRect(app, reader, corelVersion),
-            "list" => List(app),
+            "list" => List(app, reader, corelVersion),
             "delete" => Delete(app, reader),
             _ => Unknown(sub),
         };
@@ -47,22 +56,60 @@ public static class ShapeCommands
         return 0;
     }
 
-    private static int List(object app)
+    private static int List(object app, ArgReader reader, string? corelVersion)
     {
+        bool json = reader.Flag("json") is not null;
+
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
         object layer = ComInvoker.Get(doc, "ActiveLayer")!;
         object shapes = ComInvoker.Get(layer, "Shapes")!;
         int count = Convert.ToInt32(ComInvoker.Get(shapes, "Count"));
+        CapabilityManifest? manifest = VerbGate.GetManifest(corelVersion);
 
+        List<ShapeListEntry>? entries = json ? [] : null;
         for (int i = 1; i <= count; i++)
         {
             object shape = ComInvoker.Get(shapes, "Item", i)!;
-            object? type = ComInvoker.Get(shape, "Type");
+            object? rawType = ComInvoker.Get(shape, "Type");
             object? name = ComInvoker.Get(shape, "Name");
-            Console.WriteLine($"[{i}] type={type} name={name}");
+            string typeName = ShapeTypeNames.Resolve(rawType, manifest);
+
+            if (entries is not null)
+            {
+                entries.Add(new ShapeListEntry(
+                    i,
+                    typeName,
+                    name?.ToString(),
+                    Convert.ToDouble(ComInvoker.Get(shape, "LeftX")),
+                    Convert.ToDouble(ComInvoker.Get(shape, "TopY")),
+                    Convert.ToDouble(ComInvoker.Get(shape, "RightX")),
+                    Convert.ToDouble(ComInvoker.Get(shape, "BottomY")),
+                    Convert.ToDouble(ComInvoker.Get(shape, "SizeWidth")),
+                    Convert.ToDouble(ComInvoker.Get(shape, "SizeHeight"))));
+            }
+            else
+            {
+                Console.WriteLine($"[{i}] type={typeName} name={name}");
+            }
+        }
+
+        if (entries is not null)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(entries, JsonOptions));
         }
         return 0;
     }
+
+    private sealed record ShapeListEntry(
+        int Index,
+        string Type,
+        string? Name,
+        double LeftX,
+        double TopY,
+        double RightX,
+        double BottomY,
+        double SizeWidth,
+        double SizeHeight);
 
     private static int Delete(object app, ArgReader reader)
     {

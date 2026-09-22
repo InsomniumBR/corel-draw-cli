@@ -23,17 +23,8 @@ public static class VerbGate
     public static void WarnIfUnavailable(string verbName, string? corelVersion)
     {
         VerbDefinition? verb = Registry.Find(verbName);
-        if (verb is null || corelVersion is null)
-        {
-            return;
-        }
-
-        if (!ManifestCache.TryGetValue(corelVersion, out CapabilityManifest? manifest))
-        {
-            manifest = InstallStore.LoadManifest(corelVersion);
-            ManifestCache[corelVersion] = manifest;
-        }
-        if (manifest is null)
+        CapabilityManifest? manifest = GetManifest(corelVersion);
+        if (verb is null || manifest is null)
         {
             return;
         }
@@ -43,5 +34,21 @@ public static class VerbGate
         {
             Console.Error.WriteLine($"Warning: {result.Reason} Attempting anyway.");
         }
+    }
+
+    /// <summary>Loads (and caches) the active version's manifest, shared with other manifest-backed lookups.</summary>
+    public static CapabilityManifest? GetManifest(string? corelVersion)
+    {
+        if (corelVersion is null)
+        {
+            return null;
+        }
+
+        if (!ManifestCache.TryGetValue(corelVersion, out CapabilityManifest? manifest))
+        {
+            manifest = InstallStore.LoadManifest(corelVersion);
+            ManifestCache[corelVersion] = manifest;
+        }
+        return manifest;
     }
 }
