@@ -13,17 +13,27 @@ public static class PageCommands
         }
 
         var reader = new ArgReader(args[1..]);
-        object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
-        object page = ComInvoker.Get(doc, "ActivePage")!;
 
         string? unitName = reader.Flag("unit");
-        if (unitName is not null)
-        {
-            ComInvoker.Set(doc, "Unit", UnitNames.ToEnumValue(unitName));
-        }
+        int? unitValue = unitName is not null ? UnitNames.ToEnumValue(unitName) : null;
 
         double? width = reader.DoubleOrNull("width");
         double? height = reader.DoubleOrNull("height");
+
+        if (width is null != height is null)
+        {
+            Console.Error.WriteLine(
+                "Usage: corel page size --width W --height H [--unit in|mm|...] (--width and --height must be given together)");
+            return 1;
+        }
+
+        object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
+        object page = ComInvoker.Get(doc, "ActivePage")!;
+
+        if (unitValue is not null)
+        {
+            ComInvoker.Set(doc, "Unit", unitValue.Value);
+        }
 
         if (width is not null && height is not null)
         {
