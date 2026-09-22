@@ -146,6 +146,18 @@ public sealed class FakePaletteOptions;
 
 public sealed class FakePage
 {
+    // Layers and Shapes share one backing list so that shapes created on ANY layer of
+    // this page are visible via ActivePage.Shapes - this is the fix for the real bug
+    // (shape list/delete/rename used to only see ActiveLayer) that task 22 verified
+    // live and task 24's multi-layer model must not silently regress.
+    private readonly List<FakeShape> _shapes = [];
+
+    public FakePage()
+    {
+        Layers = new FakeLayers(_shapes);
+        Shapes = new FakeShapes(_shapes);
+    }
+
     public double SizeWidth { get; set; } = 10;
     public double SizeHeight { get; set; } = 20;
     public bool SetSizeCalled { get; private set; }
@@ -153,7 +165,8 @@ public sealed class FakePage
     public int Index { get; set; } = 1;
     public bool Deleted { get; private set; }
     public bool ActivateCalled { get; private set; }
-    public FakeLayers Layers { get; } = new();
+    public FakeLayers Layers { get; }
+    public FakeShapes Shapes { get; }
 
     internal Action? OnDelete { get; set; }
     internal Action? OnActivate { get; set; }
@@ -183,8 +196,10 @@ public sealed class FakePage
 }
 
 /// <summary>Stand-in for IVGLayers: Item(index)/Count/Find(name) only - the real interface
-/// (confirmed against the generated capability manifest) has no First/Last either.</summary>
-public sealed class FakeLayers
+/// (confirmed against the generated capability manifest) has no First/Last either. Every
+/// layer this creates shares the owning FakePage's single shape list (see FakePage) so
+/// shapes created on any layer are visible page-wide, matching real CorelDRAW.</summary>
+public sealed class FakeLayers(List<FakeShape> pageShapes)
 {
     private readonly List<FakeLayer> _layers = [];
 
@@ -198,7 +213,7 @@ public sealed class FakeLayers
 
     public FakeLayer CreateLayer(string name)
     {
-        var layer = new FakeLayer { Name = name, Index = _layers.Count + 1 };
+        var layer = new FakeLayer(pageShapes) { Name = name, Index = _layers.Count + 1 };
         layer.OnDelete = () => Remove(layer);
         _layers.Add(layer);
         OnLayerCreated?.Invoke(layer);
@@ -220,9 +235,53 @@ public sealed class FakeLayers
     }
 }
 
+public sealed class FakeShapes(List<FakeShape> shapes)
+{
+    public int Count => shapes.Count;
+
+    /// <summary>The range most recently handed out, so a test can inspect what was called on it.</summary>
+    public FakeShapeRange? LastRange { get; private set; }
+
+    public FakeShape Item(int index) => shapes[index - 1];
+
+    public FakeShapeRange All() => LastRange = new FakeShapeRange([.. shapes]);
+
+    public FakeShapeRange Range(int[] indexes)
+        => LastRange = new FakeShapeRange([.. indexes.Select(i => shapes[i - 1])]);
+}
+
+public sealed class FakeShapeRange(List<FakeShape> shapes)
+{
+    public List<string> Operations { get; } = [];
+
+    public int Count => shapes.Count;
+
+    public FakeShape Item(int index) => shapes[index - 1];
+
+    public FakeShape FirstShape => shapes[0];
+
+    public void Group() => Operations.Add("Group");
+
+    public void Combine() => Operations.Add("Combine");
+
+    public void AlignToShape(int type, object shape) => Operations.Add($"AlignToShape({type},{shape.GetType().Name})");
+
+    public void AlignRangeToPage(int type) => Operations.Add($"AlignRangeToPage({type})");
+
+    public void AlignRangeToPageCenter(int type) => Operations.Add($"AlignRangeToPageCenter({type})");
+
+    public void AlignRangeToGrid(int type) => Operations.Add($"AlignRangeToGrid({type})");
+
+    public void Distribute(int type, bool overPage) => Operations.Add($"Distribute({type},{overPage})");
+}
+
 public sealed class FakeLayer
 {
-    public List<FakeShape> Created { get; } = [];
+    public FakeLayer() : this([]) { }
+
+    public FakeLayer(List<FakeShape> shapes) => Created = shapes;
+
+    public List<FakeShape> Created { get; }
     public string Name { get; set; } = "Layer";
     public int Index { get; set; } = 1;
     public bool Deleted { get; private set; }
@@ -231,9 +290,52 @@ public sealed class FakeLayer
     internal Action? OnDelete { get; set; }
     internal Action? OnActivate { get; set; }
 
+    public List<string> Calls { get; } = [];
+
     public FakeShape CreateRectangle(
         double left, double top, double right, double bottom,
         double cornerTL, double cornerTR, double cornerBR, double cornerBL)
+        => Add(left, top, right, bottom);
+
+    public FakeShape CreateEllipse(
+        double left, double top, double right, double bottom,
+        object? startAngle = null, object? endAngle = null, bool pie = false)
+    {
+        Calls.Add($"CreateEllipse(pie={pie},start={startAngle},end={endAngle})");
+        return Add(left, top, right, bottom);
+    }
+
+    public FakeShape CreatePolygon(
+        double left, double top, double right, double bottom,
+        int sides = 3, object? subPaths = null, object? complexity = null, bool star = false)
+    {
+        Calls.Add($"CreatePolygon(sides={sides},star={star})");
+        return Add(left, top, right, bottom);
+    }
+
+    public FakeShape CreateLineSegment(double x1, double y1, double x2, double y2)
+    {
+        Calls.Add($"CreateLineSegment({x1},{y1},{x2},{y2})");
+        return Add(x1, y1, x2, y2);
+    }
+
+    public FakeShape CreateArtisticText(
+        double left, double bottom, string text,
+        object? languageId = null, object? charSet = null, object? font = null, object? size = null, object? bold = null)
+    {
+        Calls.Add($"CreateArtisticText('{text}',font={font},size={size},bold={bold})");
+        return Add(left, bottom, left, bottom);
+    }
+
+    public FakeShape CreateParagraphText(
+        double left, double top, double right, double bottom, string text,
+        object? languageId = null, object? charSet = null, object? font = null, object? size = null, object? bold = null)
+    {
+        Calls.Add($"CreateParagraphText('{text}',font={font},size={size},bold={bold})");
+        return Add(left, top, right, bottom);
+    }
+
+    private FakeShape Add(double left, double top, double right, double bottom)
     {
         var shape = new FakeShape { Left = left, Top = top, Right = right, Bottom = bottom };
         Created.Add(shape);
@@ -255,8 +357,89 @@ public sealed class FakeLayer
 
 public sealed class FakeShape
 {
+    public string Name { get; set; } = "";
+    public int Type { get; set; } = 5;
     public double Left { get; set; }
     public double Top { get; set; }
     public double Right { get; set; }
     public double Bottom { get; set; }
+    public double PositionX { get; set; }
+    public double PositionY { get; set; }
+
+    public double LeftX => Left;
+    public double TopY => Top;
+    public double RightX => Right;
+    public double BottomY => Bottom;
+    public double SizeWidth => Right - Left;
+    public double SizeHeight => Top - Bottom;
+
+    public List<string> Operations { get; } = [];
+    public FakeFill Fill { get; } = new();
+    public FakeOutline Outline { get; } = new();
+
+    public void Delete() => Operations.Add("Delete");
+
+    public void Move(double dx, double dy) => Operations.Add($"Move({dx},{dy})");
+
+    public void SetPosition(double x, double y) => Operations.Add($"SetPosition({x},{y})");
+
+    public void Rotate(double angle) => Operations.Add($"Rotate({angle})");
+
+    public void RotateEx(double angle, double cx, double cy) => Operations.Add($"RotateEx({angle},{cx},{cy})");
+
+    public void SetSize(double width, double height) => Operations.Add($"SetSize({width},{height})");
+
+    public void Stretch(double x, double y, bool characters) => Operations.Add($"Stretch({x},{y})");
+
+    public void Flip(int axes) => Operations.Add($"Flip({axes})");
+
+    public void Duplicate(double offsetX, double offsetY) => Operations.Add($"Duplicate({offsetX},{offsetY})");
+
+    public void OrderToFront() => Operations.Add("OrderToFront");
+
+    public void OrderToBack() => Operations.Add("OrderToBack");
+
+    public void OrderForwardOne() => Operations.Add("OrderForwardOne");
+
+    public void OrderBackOne() => Operations.Add("OrderBackOne");
+
+    public void Ungroup() => Operations.Add("Ungroup");
+
+    public void UngroupAll() => Operations.Add("UngroupAll");
+
+    public void BreakApart() => Operations.Add("BreakApart");
+}
+
+public sealed class FakeFill
+{
+    public FakeColor UniformColor { get; } = new();
+
+    public bool NoFillApplied { get; private set; }
+
+    public void ApplyNoFill() => NoFillApplied = true;
+}
+
+public sealed class FakeOutline
+{
+    public double Width { get; set; }
+
+    public FakeColor Color { get; } = new();
+
+    public bool NoOutlineApplied { get; private set; }
+
+    public void SetNoOutline() => NoOutlineApplied = true;
+}
+
+public sealed class FakeColor
+{
+    public int? Red { get; private set; }
+    public int? Green { get; private set; }
+    public int? Blue { get; private set; }
+
+    public void RGBAssign(int red, int green, int blue)
+    {
+        Red = red;
+        Green = green;
+        Blue = blue;
+    }
 }

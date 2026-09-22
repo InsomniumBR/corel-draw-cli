@@ -1,4 +1,4 @@
-[
+﻿[
   {
     "name": "docs.list",
     "group": "docs",
@@ -63,18 +63,151 @@
     "requiresMember": "CreateRectangle"
   },
   {
+    "name": "shape.create-ellipse",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreateEllipse" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreateEllipse"
+  },
+  {
+    "name": "shape.create-polygon",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreatePolygon" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreatePolygon"
+  },
+  {
+    "name": "shape.create-line",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreateLineSegment" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreateLineSegment"
+  },
+  {
+    "name": "shape.create-text.artistic",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreateArtisticText" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreateArtisticText"
+  },
+  {
+    "name": "shape.create-text.paragraph",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActiveLayer.CreateParagraphText" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "CreateParagraphText"
+  },
+  {
     "name": "shape.list",
     "group": "shape",
-    "raw": { "get": "ActiveDocument.ActiveLayer.Shapes" },
-    "requiresInterface": "IVGLayer",
+    "raw": { "get": "ActiveDocument.ActivePage.Shapes" },
+    "requiresInterface": "IVGPage",
     "requiresMember": "Shapes"
   },
   {
     "name": "shape.delete",
     "group": "shape",
-    "raw": { "call": "ActiveDocument.ActiveLayer.Shapes.Item(N).Delete" },
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Delete" },
     "requiresInterface": "IVGShape",
     "requiresMember": "Delete"
+  },
+  {
+    "name": "shape.move",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Move" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Move"
+  },
+  {
+    "name": "shape.rotate",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Rotate" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Rotate"
+  },
+  {
+    "name": "shape.scale",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).SetSize" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "SetSize"
+  },
+  {
+    "name": "shape.flip",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Flip" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Flip"
+  },
+  {
+    "name": "shape.duplicate",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Duplicate" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Duplicate"
+  },
+  {
+    "name": "shape.order",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).OrderToFront" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "OrderToFront"
+  },
+  {
+    "name": "shape.group",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Range(N,M).Group" },
+    "requiresInterface": "IVGShapeRange",
+    "requiresMember": "Group"
+  },
+  {
+    "name": "shape.ungroup",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Ungroup" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Ungroup"
+  },
+  {
+    "name": "shape.combine",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Range(N,M).Combine" },
+    "requiresInterface": "IVGShapeRange",
+    "requiresMember": "Combine"
+  },
+  {
+    "name": "shape.break-apart",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).BreakApart" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "BreakApart"
+  },
+  {
+    "name": "shape.align",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Range(N,M).AlignToShape" },
+    "requiresInterface": "IVGShapeRange",
+    "requiresMember": "AlignToShape"
+  },
+  {
+    "name": "shape.distribute",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Range(N,M).Distribute" },
+    "requiresInterface": "IVGShapeRange",
+    "requiresMember": "Distribute"
+  },
+  {
+    "name": "shape.fill",
+    "group": "shape",
+    "raw": { "call": "ActiveDocument.ActivePage.Shapes.Item(N).Fill.UniformColor.RGBAssign" },
+    "requiresInterface": "IVGColor",
+    "requiresMember": "RGBAssign"
+  },
+  {
+    "name": "shape.outline",
+    "group": "shape",
+    "raw": { "set": "ActiveDocument.ActivePage.Shapes.Item(N).Outline.Width" },
+    "requiresInterface": "IVGOutline",
+    "requiresMember": "Width"
   },
   {
     "name": "macro.install",
