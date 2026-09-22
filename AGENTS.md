@@ -9,9 +9,10 @@ with more prose and less "do this exact thing."
 
 `corel-draw-cli` (binary name `corel`) attaches to an **already-running** CorelDRAW
 instance via COM automation and drives it: create/resize/delete shapes, resize pages,
-switch between open documents, inject VBA macros, and reach the entire object model
-generically when a curated command doesn't exist yet. There are exactly three ways to
-drive it, all sharing one grammar:
+switch between open documents, inject VBA macros, and reach most plain properties and
+scalar-argument methods generically when a curated command doesn't exist yet (see "The
+`raw` escape hatch" below for what that generic reach genuinely covers, and its four
+hard limits). There are exactly three ways to drive it, all sharing one grammar:
 
 1. **One-shot commands** — `corel <command> [args...]`, one process per command.
 2. **A `.cdx` script** — `corel script run <file.cdx>` — plain text, one command per
@@ -103,8 +104,14 @@ corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corn
 corel shape list [--json]                        # list shapes on the active layer
 corel shape delete --index N                     # delete by 1-based position - remaining
                                                   # shapes renumber immediately after
+corel shape rename --index N --name <name>       # rename a shape by its 1-based position
 
 corel macro install --name <Module> --file <path.bas>
+
+corel image import --file <path> (--into <shapeName> | --left L --top T --right R --bottom B) [--unit U]
+                                                  # import an image onto the active layer,
+                                                  # fit to a shape (power-clipped into it)
+                                                  # or to explicit bounds
 
 corel raw get <dotted.path>                      # e.g. ActiveDocument.ActivePage.SizeWidth
 corel raw set <dotted.path> <value>
@@ -132,9 +139,33 @@ a terminal.
 
 ### The `raw` escape hatch
 
-Curated verbs above cover the common cases. Everything else in CorelDRAW's object
-model — several thousand properties and methods across ~200 interfaces — is reachable
-through `raw`, which walks a dotted path from the `Application` root:
+Curated verbs above cover the common cases. `raw` walks a dotted path from the
+`Application` root and reaches most plain properties and scalar-argument methods — but
+it is **not** a generic bridge to the entire object model. It has four hard limits,
+each confirmed empirically against a real running instance, not assumed:
+
+1. **No indexing into a collection by number.** Only `.First`/`.Last`/`.Next` chains
+   work; there is no `Item(n)` through `raw`. `IVGDocuments`, `IVGLayers`, `IVGColors`,
+   `IVGPalettes`, and `IVGEffects` have no `First`/`Last` at all, so their elements are
+   completely unreachable through `raw`.
+2. **No passing an object as an argument.** `raw call` only parses text into scalars —
+   there is no way to hand a method a COM object reference. This rules out
+   `Weld`/`Trim`/`Intersect`, `AddToPowerClip`, `OrderFrontOf`/`OrderBackOf`, fill
+   gradients, most effects, and style creation via `raw`.
+3. **No binding or reusing a returned object across calls.** Each `raw` invocation
+   discards whatever a factory method returned (a new shape, a style, an options
+   struct) — there is no way to capture it and feed it into a later `raw` call.
+4. **No reading a by-ref/`out` parameter.** `GetPosition`, `GetSize`,
+   `GetBoundingBox`, and similar methods return their real values through `ByRef`
+   arguments, which `raw` can never retrieve.
+
+Treat `raw` as a property inspector and a scalar-argument method poker, not a way to
+reach arbitrary object-model behavior. Anything needing a constructed object threaded
+between calls — grouping, fills, exports, PowerClip — needs a curated command written
+in C#, since `Corel.Automation.ComInvoker` genuinely can hold and pass real object
+references within a command's own code (see `MacroCommands.cs`/`ImageCommands.cs` for
+existing examples of exactly this pattern) even though `raw`'s own text-based parser
+cannot.
 
 ```
 raw get ActiveDocument.ActivePage.SizeWidth
@@ -148,6 +179,17 @@ generated capability manifest first (`corel schema generate`, then read
 member that's actually confirmed to exist, with its real parameter names. A `raw`
 error naming an unknown member or a wrong argument count means: go check that manifest
 before retrying with a guess.
+
+**Three working idioms** despite the limits above, useful when you genuinely need
+`raw` rather than a curated command:
+- `Shapes.All` returns a real shape range usable for group-style operations, e.g.
+  `raw call ActiveDocument.ActiveLayer.Shapes.All.Group`.
+- `<shape>.Fill.UniformColor.RGBAssign r g b` sets a solid fill color in place — the
+  intermediate `UniformColor` object is fetched and mutated through the dotted path
+  itself, so this works even though passing a `Color` object directly does not.
+- `PublishToPDF "<path>"` is the one export path that works through `raw` today, e.g.
+  `raw call ActiveDocument.PublishToPDF "C:\path\to\file.pdf"`. Other export formats
+  (PNG/JPG/SVG) need a constructed options object and so need a curated command.
 
 **`raw get` is not guaranteed to be read-only.** The invoker combines
 `GetProperty|InvokeMethod` (some COM libraries expose an indexed accessor as a method,

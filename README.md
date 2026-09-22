@@ -86,7 +86,9 @@ Working on the CLI itself instead of just using it? Run straight from source:
 | `corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]` | Create a rectangle on the active layer |
 | `corel shape list [--json]` | List shapes on the active layer (type names resolved from the cached manifest; `--json` also dumps geometry) |
 | `corel shape delete --index N` | Delete a shape by its 1-based position (see `shape list`). Remaining shapes renumber immediately after - re-run `shape list` before deleting another by index, don't delete a batch of indexes computed up front |
+| `corel shape rename --index N --name <name>` | Rename a shape by its 1-based position |
 | `corel macro install --name <Module> --file <path.bas>` | Inject VBA source into the active document's own VBA project |
+| `corel image import --file <path> (--into <shapeName> \| --left L --top T --right R --bottom B) [--unit U]` | Import an image onto the active layer, fit to an existing shape's bounds (power-clipped into it) or to explicit bounds |
 | `corel help [command]` | Full usage for everything, or one command — never connects to COM |
 
 Unit names accepted anywhere a `--unit` flag appears: `in`, `mm`, `cm`, `pt`, `px`, `ft`,
@@ -99,9 +101,33 @@ are all answered without attaching to CorelDRAW.
 
 ### The `raw` escape hatch
 
-Curated verbs cover the common cases. Everything else in CorelDRAW's object model —
-several thousand properties and methods across ~200 interfaces — is reachable through
-`raw`, which walks a dotted path from the `Application` root:
+Curated verbs cover the common cases. `raw` walks a dotted path from the `Application`
+root and can read or write most plain properties and call most scalar-argument methods
+across CorelDRAW's object model — but it is **not** a way to reach the entire object
+model. It has four hard limits, found and confirmed by direct testing against a real
+running instance:
+
+1. **No indexing into a collection by number.** Only `.First`/`.Last`/`.Next` chains
+   work; there's no `Item(n)` through `raw`. Some collections (`IVGDocuments`,
+   `IVGLayers`, `IVGColors`, `IVGPalettes`, `IVGEffects`) have no `First`/`Last` at all,
+   so their elements are completely unreachable through `raw` — full stop.
+2. **No passing an object as an argument.** `raw call`'s arguments are text, parsed into
+   scalars — there's no way to hand a method a COM object reference. This blocks
+   anything that takes one: `Weld`/`Trim`/`Intersect`, `AddToPowerClip`,
+   `OrderFrontOf`/`OrderBackOf`, fill gradients, most effects, and style creation.
+3. **No binding or reusing a returned object across calls.** Every `raw` invocation is
+   its own process (or its own isolated call) — a factory method's return value (a newly
+   created shape, a style, an options struct) is thrown away immediately; there is no
+   way to capture it and pass it into a second `raw` call.
+4. **No reading a by-ref/`out` parameter.** Methods like `GetPosition`, `GetSize`, and
+   `GetBoundingBox` return their real values through `ByRef` arguments, not a return
+   value — `raw` can never retrieve them.
+
+In short: `raw` is a property inspector and a scalar-argument method poker, not a
+generic bridge to arbitrary object-model behavior. Anything that needs an object
+constructed and threaded between calls (grouping, fills, exports, PowerClip) needs a
+curated command written in C#, where `Corel.Automation.ComInvoker` genuinely can hold
+and pass real object references — see "Extending verb coverage" below.
 
 ```powershell
 corel raw get ActiveDocument.ActivePage.SizeWidth
@@ -112,6 +138,16 @@ corel raw call ActiveDocument.ActiveLayer.CreateRectangle 0 1 1 0 null null null
 Pass the literal string `null` for any argument you want treated as an omitted optional
 COM parameter (it maps to `Type.Missing` — this is how `CreateRectangle`'s four optional
 corner-rounding parameters get skipped above).
+
+**Three working idioms worth knowing** despite the limits above:
+- `Shapes.All` returns a real shape range you can call group-style operations on, e.g.
+  `raw call ActiveDocument.ActiveLayer.Shapes.All.Group`.
+- `<shape>.Fill.UniformColor.RGBAssign r g b` sets a solid fill color in place — the
+  intermediate `UniformColor` object is fetched and mutated through the same dotted
+  path, so this works even though passing a `Color` object directly does not.
+- `PublishToPDF "<path>"` is the one working export path reachable through `raw` today
+  (`corel raw call ActiveDocument.PublishToPDF "C:\path\to\file.pdf"`); other export
+  formats need a curated command (they require a constructed options object).
 
 **`raw get` is not guaranteed to be read-only.** Some COM libraries (VBIDE among them)
 expose an indexed accessor as a method rather than a property, so the invoker has to
@@ -291,7 +327,8 @@ manually editing `installs.json`'s `defaultVersion`).
 ## Extending verb coverage
 
 The curated verbs are deliberately a small, hand-picked slice — `raw` already reaches
-the entire object model, generically, with zero code per member. Growing curated
+most plain properties and scalar-argument methods generically, with zero code per
+member (see "The `raw` escape hatch" above for what it *can't* reach). Growing curated
 coverage for a new area (or a future CorelDRAW version's new members) means adding an
 entry to `src/Corel.Verbs/verbs.json`:
 
