@@ -14,8 +14,7 @@ public static class DetectCommand
             return 1;
         }
 
-        InstallRecord? existing = InstallStore.Load();
-        var record = new InstallRecord { DefaultVersion = existing?.DefaultVersion ?? installs[0].Version };
+        var record = new InstallRecord { DefaultVersion = ResolveDefaultVersion(installs) };
         record.Installs.AddRange(installs);
         InstallStore.Save(record);
 
@@ -27,4 +26,7 @@ public static class DetectCommand
         }
         return 0;
     }
+
+    /// <summary>Re-picks the default from this run's installs so re-running `detect` can actually change it.</summary>
+    internal static string ResolveDefaultVersion(IReadOnlyList<CorelInstall> installs) => installs[0].Version;
 }

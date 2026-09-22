@@ -79,9 +79,13 @@ slower for a sequence).
 
 ```
 corel doc new                                    # create a blank document
-corel doc save [--as <path>]                     # save (SaveAs when --as is given)
+corel doc save [--as <path>] [--embed-vba]       # save (SaveAs when --as is given);
+                                                  # --embed-vba embeds installed macros
+                                                  # in the saved file, off by default
 corel docs list                                  # list open documents, marks active
-corel docs use <name>                            # switch the active document
+corel docs use <name|index>                      # switch the active document - errors
+                                                  # on an ambiguous name, use the index
+                                                  # from `docs list` instead
 corel docs active                                # print the active document's name
 
 corel page size                                  # print active page size
@@ -89,7 +93,8 @@ corel page size --width W --height H [--unit U]  # resize active page
 
 corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]
 corel shape list                                 # list shapes on the active layer
-corel shape delete --index N                     # delete by 1-based position
+corel shape delete --index N                     # delete by 1-based position - remaining
+                                                  # shapes renumber immediately after
 
 corel macro install --name <Module> --file <path.bas>
 

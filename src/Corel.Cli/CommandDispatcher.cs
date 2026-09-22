@@ -3,9 +3,9 @@ using Corel.Cli.Commands;
 namespace Corel.Cli;
 
 /// <summary>
-/// Shared dispatch used by both one-shot CLI invocations and the interactive REPL (and,
-/// in M7, the script runner) - one grammar, three ways to drive it. `connect` is invoked
-/// lazily so `detect`/`schema` never force a live COM attach.
+/// Shared dispatch used by one-shot CLI invocations, the interactive REPL, and the
+/// script runner - one grammar, three ways to drive it. `connect` is invoked lazily so
+/// `detect`/`schema` never force a live COM attach.
 /// </summary>
 public static class CommandDispatcher
 {

@@ -16,7 +16,8 @@ public sealed class ArgReader
             if (list[i].StartsWith("--", StringComparison.Ordinal))
             {
                 string name = list[i][2..];
-                string value = i + 1 < list.Count ? list[++i] : "";
+                bool nextIsValue = i + 1 < list.Count && !list[i + 1].StartsWith("--", StringComparison.Ordinal);
+                string value = nextIsValue ? list[++i] : "";
                 _flags[name] = value;
             }
             else
@@ -30,11 +31,9 @@ public sealed class ArgReader
 
     public string? Flag(string name) => _flags.GetValueOrDefault(name);
 
-    public double Double(string name)
-        => double.Parse(
-            Flag(name) ?? throw new ArgumentException($"Missing required --{name}"),
-            CultureInfo.InvariantCulture);
-
     public double? DoubleOrNull(string name)
-        => Flag(name) is { } s ? double.Parse(s, CultureInfo.InvariantCulture) : null;
+    {
+        string? s = Flag(name);
+        return string.IsNullOrEmpty(s) ? null : double.Parse(s, CultureInfo.InvariantCulture);
+    }
 }

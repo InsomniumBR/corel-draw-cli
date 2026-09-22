@@ -27,25 +27,28 @@ public static class ShapeCommands
 
     private static int CreateRect(object app, ArgReader reader, string? corelVersion)
     {
-        string? unitName = reader.Flag("unit");
-        int? unitValue = unitName is not null ? UnitNames.ToEnumValue(unitName) : null;
-
-        double left = reader.Double("left");
-        double top = reader.Double("top");
-        double right = reader.Double("right");
-        double bottom = reader.Double("bottom");
+        double? left = reader.DoubleOrNull("left");
+        double? top = reader.DoubleOrNull("top");
+        double? right = reader.DoubleOrNull("right");
+        double? bottom = reader.DoubleOrNull("bottom");
+        if (left is null || top is null || right is null || bottom is null)
+        {
+            Console.Error.WriteLine(
+                "Usage: corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]");
+            return 1;
+        }
         double corner = reader.DoubleOrNull("corner-radius") ?? 0;
 
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
-        if (unitValue is not null)
+        if (reader.Flag("unit") is string unitName)
         {
-            ComInvoker.Set(doc, "Unit", unitValue.Value);
+            ComInvoker.Set(doc, "Unit", UnitNames.ToEnumValue(unitName));
         }
 
         VerbGate.WarnIfUnavailable("shape.create-rect", corelVersion);
         object layer = ComInvoker.Get(doc, "ActiveLayer")!;
         object rect = ComInvoker.Call(
-            layer, "CreateRectangle", left, top, right, bottom, corner, corner, corner, corner)!;
+            layer, "CreateRectangle", left.Value, top.Value, right.Value, bottom.Value, corner, corner, corner, corner)!;
 
         Console.WriteLine($"Created rectangle at ({left},{bottom})-({right},{top}).");
         return 0;
@@ -75,7 +78,7 @@ public static class ShapeCommands
     private static int Delete(object app, ArgReader reader)
     {
         string? indexArg = reader.Flag("index");
-        if (indexArg is null || !int.TryParse(indexArg, out int index))
+        if (string.IsNullOrEmpty(indexArg) || !int.TryParse(indexArg, out int index))
         {
             Console.Error.WriteLine("Usage: corel shape delete --index N (1-based, see `corel shape list`)");
             return 1;
@@ -86,7 +89,9 @@ public static class ShapeCommands
         object shapes = ComInvoker.Get(layer, "Shapes")!;
         object shape = ComInvoker.Get(shapes, "Item", index)!;
         ComInvoker.Call(shape, "Delete");
-        Console.WriteLine($"Deleted shape at index {index}.");
+        Console.WriteLine(
+            $"Deleted shape at index {index}. Remaining shapes have renumbered - re-run `shape list` " +
+            "before deleting another by index.");
         return 0;
     }
 

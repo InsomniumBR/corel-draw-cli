@@ -29,13 +29,17 @@ public class ShapeCommandsTests
     }
 
     [Fact]
-    public void CreateRect_MissingRequiredFlag_ThrowsBeforeMutatingUnit()
+    public void CreateRect_MissingRequiredFlag_ReturnsErrorWithoutMutatingUnit()
     {
+        // Task 18 changed this from an unhandled ArgumentException to a clean
+        // usage-message-and-return-1, without changing the "validate before mutate"
+        // guarantee itself.
         var app = new FakeApplication();
         string[] args = ["create-rect", "--top", "1", "--right", "1", "--bottom", "0", "--unit", "mm"];
 
-        Assert.Throws<ArgumentException>(() => ShapeCommands.Run(args, app, null));
+        int result = ShapeCommands.Run(args, app, null);
 
+        Assert.Equal(1, result);
         Assert.Equal(1, app.ActiveDocument.Unit);
         Assert.Empty(app.ActiveDocument.ActiveLayer.Created);
     }

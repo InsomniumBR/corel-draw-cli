@@ -72,10 +72,16 @@ public static class ImageCommands
         }
         else
         {
-            left = reader.Double("left");
-            top = reader.Double("top");
-            right = reader.Double("right");
-            bottom = reader.Double("bottom");
+            double? l = reader.DoubleOrNull("left");
+            double? t = reader.DoubleOrNull("top");
+            double? r = reader.DoubleOrNull("right");
+            double? b = reader.DoubleOrNull("bottom");
+            if (l is null || t is null || r is null || b is null)
+            {
+                Console.Error.WriteLine(Usage);
+                return 1;
+            }
+            (left, top, right, bottom) = (l.Value, t.Value, r.Value, b.Value);
         }
 
         VerbGate.WarnIfUnavailable("image.import", corelVersion);

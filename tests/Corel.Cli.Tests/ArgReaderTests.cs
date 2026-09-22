@@ -2,34 +2,20 @@ using System.Globalization;
 
 namespace Corel.Cli.Tests;
 
-// Baseline coverage for ArgReader's flag-parsing logic AS IT EXISTS TODAY (task 21,
-// 2026-09-22). Tasks 16/18 (running concurrently in their own worktrees) are explicitly
-// planned to change this exact class - see ArgReader_ConsumesNextTokenAsValue_EvenWhenItLooksLikeAnotherFlag
-// and ArgReader_TrailingFlagWithNoValue_YieldsEmptyString below, which lock in behavior
-// those tasks intend to fix (UX-16). If either test starts failing after task 16/18
-// merges, that is an expected, welcome behavior change - update/remove the test rather
-// than assuming ArgReader itself regressed.
 public class ArgReaderTests
 {
     [Fact]
-    public void Positional_CollectsTokensThatDontStartWithDoubleDash()
+    public void Flag_ReturnsValue_ForFlagFollowedByAValue()
     {
-        var reader = new ArgReader(["create-rect", "--left", "1", "somefile.cdr"]);
-        Assert.Equal(["create-rect", "somefile.cdr"], reader.Positional);
+        var reader = new ArgReader(["--left", "5"]);
+        Assert.Equal("5", reader.Flag("left"));
     }
 
     [Fact]
-    public void Flag_ReturnsValue_WhenPresent()
+    public void Flag_ReturnsNull_ForFlagNotPresentAtAll()
     {
-        var reader = new ArgReader(["--name", "MyModule"]);
-        Assert.Equal("MyModule", reader.Flag("name"));
-    }
-
-    [Fact]
-    public void Flag_ReturnsNull_WhenAbsent()
-    {
-        var reader = new ArgReader(["--name", "MyModule"]);
-        Assert.Null(reader.Flag("file"));
+        var reader = new ArgReader(["--left", "5"]);
+        Assert.Null(reader.Flag("top"));
     }
 
     [Fact]
@@ -40,43 +26,57 @@ public class ArgReaderTests
     }
 
     [Fact]
-    public void ArgReader_TrailingFlagWithNoValue_YieldsEmptyString()
+    public void BooleanStyleFlag_ReturnsEmptyString_NotNull()
     {
-        // Current behavior: a flag with nothing after it in the argument list gets "" as
-        // its value rather than being rejected as malformed. Baseline only - not asserting
-        // this is desirable.
-        var reader = new ArgReader(["--force"]);
-        Assert.Equal("", reader.Flag("force"));
+        // Presence-check idiom used by callers like DocCommands: `Flag("embed-vba") is not null`.
+        var reader = new ArgReader(["--embed-vba"]);
+        Assert.NotNull(reader.Flag("embed-vba"));
+        Assert.Equal("", reader.Flag("embed-vba"));
     }
 
     [Fact]
-    public void ArgReader_ConsumesNextTokenAsValue_EvenWhenItLooksLikeAnotherFlag()
+    public void BooleanStyleFlag_DoesNotSwallowTheNextFlagAsItsValue()
     {
-        // Current behavior (review finding UX-16, owned by task 16/18): ArgReader has no
-        // concept of a boolean/known-flag token, so `--embed-vba --as out.cdr` swallows
-        // "--as" as embed-vba's value and never sees a real "as" flag at all.
+        // Regression test for the exact bug reported: `doc save --embed-vba --as out.cdr`
+        // used to consume "--as" as embed-vba's value, leaving --as unset.
         var reader = new ArgReader(["--embed-vba", "--as", "out.cdr"]);
-        Assert.Equal("--as", reader.Flag("embed-vba"));
-        Assert.Null(reader.Flag("as"));
+        Assert.Equal("", reader.Flag("embed-vba"));
+        Assert.Equal("out.cdr", reader.Flag("as"));
     }
 
     [Fact]
-    public void Double_ParsesFlagValue()
+    public void FlagWithMissingValue_DoesNotStealTheFollowingFlagsName()
     {
-        var reader = new ArgReader(["--left", "1.5"]);
-        Assert.Equal(1.5, reader.Double("left"));
+        // Regression test for the exact bug reported: `--left --top 5` used to yield
+        // left="--top" instead of leaving --left unset and --top=5.
+        var reader = new ArgReader(["--left", "--top", "5"]);
+        Assert.Equal("", reader.Flag("left"));
+        Assert.Equal("5", reader.Flag("top"));
     }
 
     [Fact]
-    public void Double_ThrowsArgumentException_WhenFlagMissing()
+    public void DoubleOrNull_ParsesAProvidedValue()
+    {
+        var reader = new ArgReader(["--left", "5.5"]);
+        Assert.Equal(5.5, reader.DoubleOrNull("left"));
+    }
+
+    [Fact]
+    public void DoubleOrNull_ReturnsNull_WhenFlagIsEntirelyAbsent()
     {
         var reader = new ArgReader([]);
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => reader.Double("left"));
-        Assert.Contains("--left", ex.Message);
+        Assert.Null(reader.DoubleOrNull("left"));
     }
 
     [Fact]
-    public void Double_UsesInvariantCulture_RegardlessOfThreadCulture()
+    public void DoubleOrNull_ReturnsNull_WhenFlagsValueWasSwallowedByAnotherFlag()
+    {
+        var reader = new ArgReader(["--left", "--top", "5"]);
+        Assert.Null(reader.DoubleOrNull("left"));
+    }
+
+    [Fact]
+    public void DoubleOrNull_UsesInvariantCulture_RegardlessOfThreadCulture()
     {
         CultureInfo original = CultureInfo.CurrentCulture;
         try
@@ -86,7 +86,7 @@ public class ArgReaderTests
             // to parse or be misread as 15.
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
             var reader = new ArgReader(["--left", "1.5"]);
-            Assert.Equal(1.5, reader.Double("left"));
+            Assert.Equal(1.5, reader.DoubleOrNull("left"));
         }
         finally
         {
@@ -95,16 +95,16 @@ public class ArgReaderTests
     }
 
     [Fact]
-    public void DoubleOrNull_ReturnsNull_WhenFlagMissing()
+    public void Positional_CollectsNonFlagTokens()
     {
-        var reader = new ArgReader([]);
-        Assert.Null(reader.DoubleOrNull("corner-radius"));
+        var reader = new ArgReader(["install", "--name", "Foo"]);
+        Assert.Equal(["install"], reader.Positional);
     }
 
     [Fact]
-    public void DoubleOrNull_ParsesFlagValue_WhenPresent()
+    public void NegativeNumberValue_IsNotTreatedAsAFlag()
     {
-        var reader = new ArgReader(["--corner-radius", "25"]);
-        Assert.Equal(25, reader.DoubleOrNull("corner-radius"));
+        var reader = new ArgReader(["--left", "-5"]);
+        Assert.Equal(-5, reader.DoubleOrNull("left"));
     }
 }
