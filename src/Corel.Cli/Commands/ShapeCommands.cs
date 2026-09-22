@@ -8,7 +8,7 @@ public static class ShapeCommands
     {
         if (args.Length == 0)
         {
-            Console.Error.WriteLine("Usage: corel shape <create-rect|list|delete> ...");
+            Console.Error.WriteLine("Usage: corel shape <create-rect|list|delete|rename> ...");
             return 1;
         }
 
@@ -20,6 +20,7 @@ public static class ShapeCommands
             "create-rect" => CreateRect(app, reader, corelVersion),
             "list" => List(app),
             "delete" => Delete(app, reader),
+            "rename" => Rename(app, reader),
             _ => Unknown(sub),
         };
     }
@@ -59,7 +60,11 @@ public static class ShapeCommands
             object shape = ComInvoker.Get(shapes, "Item", i)!;
             object? type = ComInvoker.Get(shape, "Type");
             object? name = ComInvoker.Get(shape, "Name");
-            Console.WriteLine($"[{i}] type={type} name={name}");
+            object? left = ComInvoker.Get(shape, "LeftX");
+            object? top = ComInvoker.Get(shape, "TopY");
+            object? right = ComInvoker.Get(shape, "RightX");
+            object? bottom = ComInvoker.Get(shape, "BottomY");
+            Console.WriteLine($"[{i}] type={type} name={name} bounds=({left},{bottom})-({right},{top})");
         }
         return 0;
     }
@@ -79,6 +84,25 @@ public static class ShapeCommands
         object shape = ComInvoker.Get(shapes, "Item", index)!;
         ComInvoker.Call(shape, "Delete");
         Console.WriteLine($"Deleted shape at index {index}.");
+        return 0;
+    }
+
+    private static int Rename(object app, ArgReader reader)
+    {
+        string? indexArg = reader.Flag("index");
+        string? name = reader.Flag("name");
+        if (indexArg is null || !int.TryParse(indexArg, out int index) || name is null)
+        {
+            Console.Error.WriteLine("Usage: corel shape rename --index N --name <name> (1-based, see `corel shape list`)");
+            return 1;
+        }
+
+        object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
+        object layer = ComInvoker.Get(doc, "ActiveLayer")!;
+        object shapes = ComInvoker.Get(layer, "Shapes")!;
+        object shape = ComInvoker.Get(shapes, "Item", index)!;
+        ComInvoker.Set(shape, "Name", name);
+        Console.WriteLine($"Renamed shape {index} to '{name}'.");
         return 0;
     }
 

@@ -38,6 +38,7 @@ public static class CommandDispatcher
             "docs" => DocsCommands.Run(commandArgs, app),
             "doc" => DocCommands.Run(commandArgs, app),
             "macro" => MacroCommands.Run(commandArgs, app, version),
+            "image" => ImageCommands.Run(commandArgs, app, version),
             _ => UnknownCommand(command),
         };
     }

@@ -89,5 +89,19 @@
     "raw": { "call": "InitializeVBA" },
     "requiresInterface": "IVGApplication",
     "requiresMember": "InitializeVBA"
+  },
+  {
+    "name": "shape.rename",
+    "group": "shape",
+    "raw": { "set": "Name" },
+    "requiresInterface": "IVGShape",
+    "requiresMember": "Name"
+  },
+  {
+    "name": "image.import",
+    "group": "image",
+    "raw": { "call": "ActiveDocument.ActiveLayer.Import" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "Import"
   }
 ]

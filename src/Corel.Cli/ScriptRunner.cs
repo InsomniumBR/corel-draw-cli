@@ -132,8 +132,10 @@ public static class ScriptRunner
             ("page", "size") => "page.size.get",
             ("shape", "create-rect") => "shape.create-rect",
             ("shape", "delete") => "shape.delete",
+            ("shape", "rename") => "shape.rename",
             ("doc", "save") => "doc.save",
             ("macro", "install") => "macro.install",
+            ("image", "import") => "image.import",
             _ => null,
         };
     }
