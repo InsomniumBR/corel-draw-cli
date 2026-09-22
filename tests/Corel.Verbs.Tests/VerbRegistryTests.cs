@@ -36,4 +36,26 @@ public class VerbRegistryTests
             Assert.True(setCount == 1, $"Verb '{verb.Name}' must declare exactly one of get/set/call, found {setCount}.");
         }
     }
+
+    [Fact]
+    public void Registry_DoesNotContainVerbsWithNoCorrespondingCommand()
+    {
+        // Regression guard: these had no VerbGate call site anywhere and were removed.
+        VerbRegistry registry = VerbRegistry.LoadEmbedded();
+
+        Assert.Null(registry.Find("doc.unit.get"));
+        Assert.Null(registry.Find("layer.list"));
+        Assert.Null(registry.Find("layer.active"));
+    }
+
+    [Fact]
+    public void ShapeDelete_RawCallIsNotABareMemberName()
+    {
+        VerbRegistry registry = VerbRegistry.LoadEmbedded();
+        VerbDefinition? shapeDelete = registry.Find("shape.delete");
+
+        Assert.NotNull(shapeDelete);
+        Assert.NotNull(shapeDelete!.Raw.Call);
+        Assert.Contains('.', shapeDelete.Raw.Call!);
+    }
 }

@@ -4,7 +4,7 @@ namespace Corel.Cli.Commands;
 
 public static class DocCommands
 {
-    public static int Run(string[] args, object app)
+    public static int Run(string[] args, object app, string? corelVersion)
     {
         if (args.Length == 0)
         {
@@ -15,7 +15,7 @@ public static class DocCommands
         return args[0] switch
         {
             "new" => New(app),
-            "save" => Save(app, args[1..]),
+            "save" => Save(app, args[1..], corelVersion),
             _ => Unknown(args[0]),
         };
     }
@@ -27,8 +27,9 @@ public static class DocCommands
         return 0;
     }
 
-    private static int Save(object app, string[] args)
+    private static int Save(object app, string[] args, string? corelVersion)
     {
+        VerbGate.WarnIfUnavailable("doc.save", corelVersion);
         var reader = new ArgReader(args);
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
         string? path = reader.Flag("as");

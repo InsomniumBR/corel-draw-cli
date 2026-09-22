@@ -35,8 +35,8 @@ public static class CommandDispatcher
             "raw" => RawCommands.Run(commandArgs, app),
             "page" => PageCommands.Run(commandArgs, app, version),
             "shape" => ShapeCommands.Run(commandArgs, app, version),
-            "docs" => DocsCommands.Run(commandArgs, app),
-            "doc" => DocCommands.Run(commandArgs, app),
+            "docs" => DocsCommands.Run(commandArgs, app, version),
+            "doc" => DocCommands.Run(commandArgs, app, version),
             "macro" => MacroCommands.Run(commandArgs, app, version),
             _ => UnknownCommand(command),
         };

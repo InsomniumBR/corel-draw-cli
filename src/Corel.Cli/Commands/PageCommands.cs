@@ -19,6 +19,7 @@ public static class PageCommands
         string? unitName = reader.Flag("unit");
         if (unitName is not null)
         {
+            VerbGate.WarnIfUnavailable("doc.unit.set", corelVersion);
             ComInvoker.Set(doc, "Unit", UnitNames.ToEnumValue(unitName));
         }
 
@@ -33,6 +34,7 @@ public static class PageCommands
         }
         else
         {
+            VerbGate.WarnIfUnavailable("page.size.get", corelVersion);
             object? w = ComInvoker.Get(page, "SizeWidth");
             object? h = ComInvoker.Get(page, "SizeHeight");
             Console.WriteLine($"{w} x {h}");

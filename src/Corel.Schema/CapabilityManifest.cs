@@ -10,7 +10,10 @@ namespace Corel.Schema;
 /// </summary>
 public sealed class CapabilityManifest
 {
-    public int SchemaVersion { get; init; } = 1;
+    /// <summary>Bump when this class's shape changes incompatibly; checked by <see cref="Corel.Automation.InstallStore.LoadManifest"/>.</summary>
+    public const int CurrentSchemaVersion = 1;
+
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public required string CorelVersion { get; init; }
     public required string ProgId { get; init; }
     public required string TlbPath { get; init; }

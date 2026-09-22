@@ -11,9 +11,6 @@ public sealed class CorelInstall
     public required string ProgId { get; init; }
     public required string InstallPath { get; init; }
     public required string TlbPath { get; init; }
-
-    /// <summary>Populated once `corel schema generate` has cached a manifest for this version.</summary>
-    public string? ManifestPath { get; set; }
 }
 
 /// <summary>
