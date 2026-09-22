@@ -127,7 +127,14 @@ raw call ActiveDocument.ActiveLayer.CreateRectangle 0 1 1 0 null null null null
 If you need something not in the curated list, don't guess a method name — check the
 generated capability manifest first (`corel schema generate`, then read
 `%LOCALAPPDATA%\corel-draw-cli\schemas\corel-<version>.json`) so you're calling a
-member that's actually confirmed to exist, with its real parameter names.
+member that's actually confirmed to exist, with its real parameter names. A `raw`
+error naming an unknown member or a wrong argument count means: go check that manifest
+before retrying with a guess.
+
+**`raw get` is not guaranteed to be read-only.** The invoker combines
+`GetProperty|InvokeMethod` (some COM libraries expose an indexed accessor as a method,
+not a property), so `raw get ActiveDocument.Close` really does invoke `Close` and
+close the document. Don't treat `raw get` on an unfamiliar member as a safe probe.
 
 ### Script variables (`--vars`)
 

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Corel.Automation;
 
 namespace Corel.Cli.Commands;
@@ -19,6 +20,9 @@ namespace Corel.Cli.Commands;
 /// </remarks>
 public static class MacroCommands
 {
+    /// <summary>VBIDE's vbext_ComponentType.vbext_ct_StdModule.</summary>
+    private const int VbExtCtStdModule = 1;
+
     public static int Run(string[] args, object app, string? corelVersion)
     {
         if (args.Length == 0 || args[0] != "install")
@@ -54,7 +58,7 @@ public static class MacroCommands
         object components = ComInvoker.Get(project, "VBComponents")!;
         RemoveIfExists(components, moduleName);
 
-        object newComponent = ComInvoker.Call(components, "Add", 1)!; // vbext_ct_StdModule
+        object newComponent = ComInvoker.Call(components, "Add", VbExtCtStdModule)!;
         ComInvoker.Set(newComponent, "Name", moduleName);
 
         object codeModule = ComInvoker.Get(newComponent, "CodeModule")!;
@@ -101,16 +105,22 @@ public static class MacroCommands
         return null;
     }
 
+    /// <summary>Only the existence lookup may fail silently; a genuine Remove failure propagates instead of resurfacing as a confusing Add name-collision.</summary>
     private static void RemoveIfExists(object components, string name)
     {
+        object? existing;
         try
         {
-            object existing = ComInvoker.Get(components, "Item", name)!;
-            ComInvoker.Call(components, "Remove", existing);
+            existing = ComInvoker.Get(components, "Item", name);
         }
-        catch
+        catch (TargetInvocationException)
         {
-            // didn't exist - nothing to remove
+            return;
+        }
+
+        if (existing is not null)
+        {
+            ComInvoker.Call(components, "Remove", existing);
         }
     }
 }

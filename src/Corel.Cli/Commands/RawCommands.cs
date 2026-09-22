@@ -8,13 +8,22 @@ namespace Corel.Cli.Commands;
 /// reaches the entire object model without a curated verb, via ComInvoker's dotted-path
 /// walker.
 /// </summary>
+/// <remarks>`raw get` can invoke methods, not just read properties - e.g. `raw get X.Close` really closes X.</remarks>
 public static class RawCommands
 {
+    private const string ActionWarning =
+        "Note: `raw get` can invoke methods, not just read properties - e.g. `raw get X.Close` really closes X.";
+
+    private const string SchemaHint =
+        "If a member name or argument count looks wrong, run `corel schema generate` and check the cached " +
+        "manifest (%LOCALAPPDATA%\\corel-draw-cli\\schemas\\corel-<version>.json) to confirm what actually exists.";
+
     public static int Run(string[] args, object app)
     {
         if (args.Length < 2)
         {
             Console.Error.WriteLine("Usage: corel raw <get|set|call> <path> [args...]");
+            Console.Error.WriteLine(ActionWarning);
             return 1;
         }
 
@@ -22,33 +31,45 @@ public static class RawCommands
         string path = args[1];
         string[] rest = args[2..];
 
-        switch (op)
+        try
         {
-            case "get":
-                Console.WriteLine(ComInvoker.ResolvePath(app, path));
-                return 0;
+            switch (op)
+            {
+                case "get":
+                    Console.WriteLine(ComInvoker.ResolvePath(app, path));
+                    return 0;
 
-            case "set":
-                if (rest.Length < 1)
-                {
-                    Console.Error.WriteLine("Usage: corel raw set <path> <value>");
+                case "set":
+                    if (rest.Length < 1)
+                    {
+                        Console.Error.WriteLine("Usage: corel raw set <path> <value>");
+                        return 1;
+                    }
+                    (object setTarget, string setMember) = ComInvoker.ResolveParent(app, path);
+                    ComInvoker.Set(setTarget, setMember, ParseValue(rest[0])!);
+                    Console.WriteLine("OK");
+                    return 0;
+
+                case "call":
+                    (object callTarget, string callMember) = ComInvoker.ResolveParent(app, path);
+                    object?[] callArgs = [.. rest.Select(ParseValue)];
+                    object? result = ComInvoker.Call(callTarget, callMember, callArgs);
+                    Console.WriteLine(result is null ? "OK" : result.ToString());
+                    return 0;
+
+                default:
+                    Console.Error.WriteLine($"Unknown raw operation '{op}'. Expected get|set|call.");
                     return 1;
-                }
-                (object setTarget, string setMember) = ComInvoker.ResolveParent(app, path);
-                ComInvoker.Set(setTarget, setMember, ParseValue(rest[0])!);
-                Console.WriteLine("OK");
-                return 0;
-
-            case "call":
-                (object callTarget, string callMember) = ComInvoker.ResolveParent(app, path);
-                object?[] callArgs = [.. rest.Select(ParseValue)];
-                object? result = ComInvoker.Call(callTarget, callMember, callArgs);
-                Console.WriteLine(result is null ? "OK" : result.ToString());
-                return 0;
-
-            default:
-                Console.Error.WriteLine($"Unknown raw operation '{op}'. Expected get|set|call.");
-                return 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: {ErrorMessages.Friendly(ex)}");
+            if (!ErrorMessages.IsNoActiveDocument(ex))
+            {
+                Console.Error.WriteLine(SchemaHint);
+            }
+            return 1;
         }
     }
 
