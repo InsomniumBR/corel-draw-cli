@@ -14,6 +14,20 @@
     "requiresMember": "ActiveDocument"
   },
   {
+    "name": "docs.use",
+    "group": "docs",
+    "raw": { "call": "Activate" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Activate"
+  },
+  {
+    "name": "doc.new",
+    "group": "doc",
+    "raw": { "call": "CreateDocument" },
+    "requiresInterface": "IVGApplication",
+    "requiresMember": "CreateDocument"
+  },
+  {
     "name": "doc.save",
     "group": "doc",
     "raw": { "call": "ActiveDocument.Save" },

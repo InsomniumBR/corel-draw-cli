@@ -14,14 +14,15 @@ public static class DocCommands
 
         return args[0] switch
         {
-            "new" => New(app),
+            "new" => New(app, corelVersion),
             "save" => Save(app, args[1..], corelVersion),
             _ => Unknown(args[0]),
         };
     }
 
-    private static int New(object app)
+    private static int New(object app, string? corelVersion)
     {
+        VerbGate.WarnIfUnavailable("doc.new", corelVersion);
         object doc = ComInvoker.Call(app, "CreateDocument")!;
         Console.WriteLine($"Created document '{ComInvoker.Get(doc, "Name")}'.");
         return 0;

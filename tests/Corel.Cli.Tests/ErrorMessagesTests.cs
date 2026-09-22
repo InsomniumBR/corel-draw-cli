@@ -49,4 +49,25 @@ public class ErrorMessagesTests
         Assert.True(ErrorMessages.IsNoActiveDocument(noDoc));
         Assert.False(ErrorMessages.IsNoActiveDocument(somethingElse));
     }
+
+    [Fact]
+    public void IsNoActiveDocument_TrueForActiveDocumentAsLastSegment()
+    {
+        var noDoc = new InvalidOperationException(
+            "'ActiveDocument' was invoked and returned no value (it may have performed an action, e.g. closing/quitting).");
+
+        Assert.True(ErrorMessages.IsNoActiveDocument(noDoc));
+    }
+
+    [Fact]
+    public void Friendly_DoesNotHideRealMessage_ForNonActiveDocumentLastSegmentNull()
+    {
+        var ex = new InvalidOperationException(
+            "'Close' was invoked and returned no value (it may have performed an action, e.g. closing/quitting).");
+
+        string message = ErrorMessages.Friendly(ex);
+
+        Assert.False(ErrorMessages.IsNoActiveDocument(ex));
+        Assert.Contains("invoked and returned no value", message);
+    }
 }

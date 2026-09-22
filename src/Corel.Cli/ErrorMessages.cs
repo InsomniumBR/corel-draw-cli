@@ -16,9 +16,14 @@ public static class ErrorMessages
         return IsNoActiveDocument(ex) ? NoActiveDocumentHint : message;
     }
 
-    /// <summary>True for ComInvoker.ResolvePath's null-ActiveDocument case, so callers can skip an unrelated hint for it.</summary>
+    /// <summary>
+    /// True for ComInvoker.ResolvePath's null-ActiveDocument case, so callers can skip an
+    /// unrelated hint for it. Matches on the quoted member name alone (not the full
+    /// "resolved to null while walking" phrasing) since ResolvePath now emits a different
+    /// message when ActiveDocument is the path's last segment.
+    /// </summary>
     public static bool IsNoActiveDocument(Exception ex)
-        => RawMessage(ex).StartsWith("'ActiveDocument' resolved to null", StringComparison.Ordinal);
+        => RawMessage(ex).StartsWith("'ActiveDocument'", StringComparison.Ordinal);
 
     private static string RawMessage(Exception ex) => ex.InnerException?.Message ?? ex.Message;
 }

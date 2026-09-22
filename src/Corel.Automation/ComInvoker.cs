@@ -42,14 +42,30 @@ public static class ComInvoker
     /// Walks a dotted path (e.g. "ActiveDocument.ActivePage.SizeWidth") from a root COM
     /// object, resolving every segment as a property get, and returns the final value.
     /// </summary>
+    /// <remarks>
+    /// A null on an intermediate segment is a genuine walking failure - there's nothing
+    /// to resolve the next segment against. A null on the LAST segment is ambiguous:
+    /// Get() combines GetProperty|InvokeMethod, so the final segment may have been a
+    /// method call that ran successfully and simply has no return value (e.g. Close()) -
+    /// that's not a failure, so it gets a different message rather than being reported
+    /// as one.
+    /// </remarks>
     public static object? ResolvePath(object root, string dottedPath)
     {
+        string[] segments = SplitPath(dottedPath);
         object current = root;
-        foreach (string segment in SplitPath(dottedPath))
+        for (int i = 0; i < segments.Length; i++)
         {
-            current = Get(current, segment)
-                ?? throw new InvalidOperationException(
-                    $"'{segment}' resolved to null while walking path '{dottedPath}'.");
+            string segment = segments[i];
+            object? next = Get(current, segment);
+            if (next is null)
+            {
+                bool isLastSegment = i == segments.Length - 1;
+                throw new InvalidOperationException(isLastSegment
+                    ? $"'{segment}' was invoked and returned no value (it may have performed an action, e.g. closing/quitting)."
+                    : $"'{segment}' resolved to null while walking path '{dottedPath}'.");
+            }
+            current = next;
         }
         return current;
     }
