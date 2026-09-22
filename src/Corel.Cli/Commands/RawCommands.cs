@@ -53,7 +53,7 @@ public static class RawCommands
     }
 
     /// <summary>The literal string "null" maps to Type.Missing via ComInvoker's null convention.</summary>
-    private static object? ParseValue(string raw)
+    internal static object? ParseValue(string raw)
     {
         if (raw == "null")
         {

@@ -6,18 +6,16 @@ namespace Corel.Schema.Tests;
 public class TypeLibScannerTests
 {
     // Only present on a machine with CorelDRAW X7 installed - not something CI can rely
-    // on. Tests below no-op (rather than fail) when it's absent, so this suite still runs
-    // clean in CI while giving real verification on a dev machine that has X7 installed.
+    // on. Tests below report as SKIPPED (via SkippableFact - visible in test output,
+    // distinct from a pass) rather than silently no-op-passing when it's absent, so CI
+    // stays green while still giving real verification on a dev machine with X7 installed.
     private const string X7TlbPath =
         @"P:\Program Files\Corel\CorelDRAW Graphics Suite X7\Programs64\vgcoreauto.tlb";
 
-    [Fact]
+    [SkippableFact]
     public void Scan_ProducesGroundTruthCdrUnitValues_WhenX7IsInstalled()
     {
-        if (!File.Exists(X7TlbPath))
-        {
-            return;
-        }
+        Skip.IfNot(File.Exists(X7TlbPath), $"CorelDRAW X7 type library not found at '{X7TlbPath}' on this machine.");
 
         CapabilityManifest manifest = TypeLibScanner.Scan(X7TlbPath, "17", "CorelDRAW.Application.17");
 
@@ -29,13 +27,10 @@ public class TypeLibScannerTests
         Assert.Equal(5, cdrUnit.Members["cdrPixel"].Value);
     }
 
-    [Fact]
+    [SkippableFact]
     public void Scan_FindsCreateRectangleWithExpectedParams_WhenX7IsInstalled()
     {
-        if (!File.Exists(X7TlbPath))
-        {
-            return;
-        }
+        Skip.IfNot(File.Exists(X7TlbPath), $"CorelDRAW X7 type library not found at '{X7TlbPath}' on this machine.");
 
         CapabilityManifest manifest = TypeLibScanner.Scan(X7TlbPath, "17", "CorelDRAW.Application.17");
 
