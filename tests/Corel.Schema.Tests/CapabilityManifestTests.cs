@@ -1,5 +1,3 @@
-using Corel.Schema;
-
 namespace Corel.Schema.Tests;
 
 public class CapabilityManifestTests

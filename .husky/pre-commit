@@ -1,0 +1,21 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+modified_files="$(git diff --name-only --diff-filter=d)"
+echo "Files before format.."
+echo ${modified_files:-"(none)"}
+
+dotnet husky run
+
+files_after_format="$(git diff --name-only --diff-filter=d)"
+echo "Files after format.."
+echo ${files_after_format:-"(none)"}
+
+formatted_files=$(echo ${modified_files[@]} ${files_after_format[@]} | tr ' ' '\n' | sort | uniq -u)
+
+echo "Formatted files to add:"
+echo ${formatted_files:-"(none)"}
+
+if [ -n "$formatted_files" ]; then
+    git add $formatted_files
+fi

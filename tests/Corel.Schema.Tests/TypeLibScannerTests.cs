@@ -1,5 +1,4 @@
 using System.Runtime.Versioning;
-using Corel.Schema;
 
 namespace Corel.Schema.Tests;
 

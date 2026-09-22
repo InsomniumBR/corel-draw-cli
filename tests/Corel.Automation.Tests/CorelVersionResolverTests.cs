@@ -1,4 +1,3 @@
-using Corel.Automation;
 using Corel.Schema;
 
 namespace Corel.Automation.Tests;
