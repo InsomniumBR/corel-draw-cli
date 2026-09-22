@@ -98,4 +98,120 @@ public class PageCommandsTests
         Assert.Equal(1, app.ActiveDocument.Unit);
         Assert.False(app.ActiveDocument.ActivePage.SetSizeCalled);
     }
+
+    [Fact]
+    public void Add_NoAfter_AppendsAtTheEnd()
+    {
+        var app = new FakeApplication();
+
+        int result = PageCommands.Run(["add"], app, null);
+
+        Assert.Equal(0, result);
+        Assert.Equal(2, app.ActiveDocument.Pages.Count);
+        Assert.Equal("Page 2", app.ActiveDocument.Pages.Item(2).Name);
+    }
+
+    [Fact]
+    public void Add_WithAfter_InsertsAfterThatPage()
+    {
+        var app = new FakeApplication();
+        app.ActiveDocument.Pages.Item(1).Name = "ORIG";
+        app.ActiveDocument.Pages.AddPages(1);
+        app.ActiveDocument.Pages.Item(2).Name = "APPENDED"; // [ORIG, APPENDED]
+
+        int result = PageCommands.Run(["add", "--after", "1"], app, null);
+
+        Assert.Equal(0, result);
+        Assert.Equal(3, app.ActiveDocument.Pages.Count);
+        // Per the live-verified InsertPages(count, beforePage: false, page: 1) semantics,
+        // the new page lands strictly between ORIG and APPENDED.
+        Assert.Equal("ORIG", app.ActiveDocument.Pages.Item(1).Name);
+        Assert.Equal("APPENDED", app.ActiveDocument.Pages.Item(3).Name);
+        Assert.NotEqual("ORIG", app.ActiveDocument.Pages.Item(2).Name);
+        Assert.NotEqual("APPENDED", app.ActiveDocument.Pages.Item(2).Name);
+    }
+
+    [Fact]
+    public void Add_NonNumericAfter_ReturnsErrorWithoutMutating()
+    {
+        var app = new FakeApplication();
+
+        int result = PageCommands.Run(["add", "--after", "abc"], app, null);
+
+        Assert.Equal(1, result);
+        Assert.Equal(1, app.ActiveDocument.Pages.Count);
+    }
+
+    [Fact]
+    public void Delete_ValidIndex_RemovesPageAndRenumbers()
+    {
+        var app = new FakeApplication();
+        app.ActiveDocument.Pages.AddPages(2); // [Page1, Page2, Page3]
+
+        int result = PageCommands.Run(["delete", "--index", "1"], app, null);
+
+        Assert.Equal(0, result);
+        Assert.Equal(2, app.ActiveDocument.Pages.Count);
+        Assert.True(app.ActiveDocument.Pages.Item(1).Index == 1);
+    }
+
+    [Fact]
+    public void Delete_MissingIndex_ReturnsUsageError()
+    {
+        var app = new FakeApplication();
+
+        int result = PageCommands.Run(["delete"], app, null);
+
+        Assert.Equal(1, result);
+        Assert.Equal(1, app.ActiveDocument.Pages.Count);
+    }
+
+    [Fact]
+    public void Goto_ValidIndex_ActivatesThatPage()
+    {
+        var app = new FakeApplication();
+        app.ActiveDocument.Pages.AddPages(1); // [Page1, Page2]
+
+        int result = PageCommands.Run(["goto", "--index", "2"], app, null);
+
+        Assert.Equal(0, result);
+        Assert.Same(app.ActiveDocument.Pages.Item(2), app.ActiveDocument.ActivePage);
+        Assert.True(app.ActiveDocument.Pages.Item(2).ActivateCalled);
+    }
+
+    [Fact]
+    public void Goto_NonNumericIndex_ReturnsUsageError()
+    {
+        var app = new FakeApplication();
+
+        int result = PageCommands.Run(["goto", "--index", "abc"], app, null);
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public void List_MarksTheActivePage()
+    {
+        var app = new FakeApplication();
+        app.ActiveDocument.Pages.AddPages(1); // [Page1(active), Page2]
+
+        TextWriter originalOut = Console.Out;
+        var stdout = new StringWriter();
+        Console.SetOut(stdout);
+        int result;
+        try
+        {
+            result = PageCommands.Run(["list"], app, null);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        Assert.Equal(0, result);
+        string output = stdout.ToString();
+        Assert.Contains("[1]", output);
+        Assert.Contains("(active)", output);
+        Assert.Contains("[2]", output);
+    }
 }
