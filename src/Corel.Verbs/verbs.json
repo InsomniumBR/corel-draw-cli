@@ -82,5 +82,33 @@
     "raw": { "call": "ActiveDocument.ActiveLayer.Import" },
     "requiresInterface": "IVGLayer",
     "requiresMember": "Import"
+  },
+  {
+    "name": "doc.export",
+    "group": "doc",
+    "raw": { "call": "ActiveDocument.Export" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Export"
+  },
+  {
+    "name": "doc.export.pdf",
+    "group": "doc",
+    "raw": { "call": "ActiveDocument.PublishToPDF" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "PublishToPDF"
+  },
+  {
+    "name": "doc.undo",
+    "group": "doc",
+    "raw": { "call": "ActiveDocument.Undo" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Undo"
+  },
+  {
+    "name": "doc.redo",
+    "group": "doc",
+    "raw": { "call": "ActiveDocument.Redo" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Redo"
   }
 ]

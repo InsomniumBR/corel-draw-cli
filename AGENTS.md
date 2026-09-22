@@ -79,6 +79,14 @@ slower for a sequence).
 - **`--corel-version N` must come before the command**: `corel --corel-version 17 raw get
   ActiveDocument.Name`. Every other flag belongs to the command it's written on, so a
   command's own `--force`/`--vars` is never mistaken for a global one.
+- **`doc export` (png/jpg/svg) crops to the drawing's own object extent, not the page.**
+  Verified live: with no `--width`/`--height`, the output's pixel size is the objects'
+  bounding box at the given `--dpi` (default 300) - blank page margins beyond the drawing
+  are never included, regardless of selection state. `--width`/`--height` scale that same
+  extent (aspect preserved - one dimension may be recalculated to keep it, never
+  distorted); they are not literal output pixel dimensions independent of content.
+  `--format pdf` is different: it calls `PublishToPDF` directly, which exports the whole
+  page as CorelDRAW's own PDF publishing normally does.
 - Only **CorelDRAW X7** is verified on real hardware. The tool is built to work across
   versions via runtime reflection against whatever's actually installed (no hardcoded
   per-version assumptions), but treat other versions as best-effort until verified.
@@ -90,6 +98,13 @@ corel doc new                                    # create a blank document
 corel doc save [--as <path>] [--embed-vba]       # save (SaveAs when --as is given);
                                                   # --embed-vba embeds installed macros
                                                   # in the saved file, off by default
+corel doc export --as <path> --format png|jpg|svg|pdf [--width W --height H] [--dpi D]
+                                                  # export the active document - pdf calls
+                                                  # PublishToPDF directly; the other formats
+                                                  # crop to the drawing's object extent, not
+                                                  # the blank page canvas (see below)
+corel doc undo [--levels N]                      # undo the last N edits (default 1)
+corel doc redo [--levels N]                      # redo the last N undone edits (default 1)
 corel docs list                                  # list open documents, marks active
 corel docs use <name|index>                      # switch the active document - errors
                                                   # on an ambiguous name, use the index

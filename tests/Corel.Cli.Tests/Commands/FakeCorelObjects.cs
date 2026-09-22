@@ -9,6 +9,10 @@ namespace Corel.Cli.Tests.Commands;
 public sealed class FakeApplication
 {
     public FakeDocument ActiveDocument { get; set; } = new();
+
+    public FakeExportOptions CreateStructExportOptions() => new();
+
+    public FakePaletteOptions CreateStructPaletteOptions() => new();
 }
 
 public sealed class FakeDocument
@@ -16,7 +20,47 @@ public sealed class FakeDocument
     public int Unit { get; set; } = 1;
     public FakePage ActivePage { get; set; } = new();
     public FakeLayer ActiveLayer { get; set; } = new();
+    public string? ExportedPath { get; private set; }
+    public int? ExportedFilter { get; private set; }
+    public int? ExportedRange { get; private set; }
+    public FakeExportOptions? ExportedOptions { get; private set; }
+    public string? PublishedPdfPath { get; private set; }
+    public int UndoLevels { get; private set; }
+    public int RedoLevels { get; private set; }
+
+    public void Export(string fileName, int filter, int range, FakeExportOptions options, FakePaletteOptions paletteOptions)
+    {
+        ExportedPath = fileName;
+        ExportedFilter = filter;
+        ExportedRange = range;
+        ExportedOptions = options;
+    }
+
+    public void PublishToPDF(string fileName) => PublishedPdfPath = fileName;
+
+    public void Undo(int levels) => UndoLevels = levels;
+
+    public void Redo(int levels) => RedoLevels = levels;
 }
+
+public sealed class FakeExportOptions
+{
+    public bool Overwrite { get; set; }
+    public double ResolutionX { get; set; }
+    public double ResolutionY { get; set; }
+    public int ImageType { get; set; }
+    public int AntiAliasingType { get; set; }
+    public int Compression { get; set; }
+    public bool MaintainLayers { get; set; }
+    public bool MaintainAspect { get; set; }
+    public bool Transparent { get; set; }
+    public bool Dithered { get; set; }
+    public bool UseColorProfile { get; set; }
+    public double SizeX { get; set; }
+    public double SizeY { get; set; }
+}
+
+public sealed class FakePaletteOptions;
 
 public sealed class FakePage
 {
