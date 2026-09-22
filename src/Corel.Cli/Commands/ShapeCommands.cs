@@ -26,17 +26,20 @@ public static class ShapeCommands
 
     private static int CreateRect(object app, ArgReader reader, string? corelVersion)
     {
-        object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
-        if (reader.Flag("unit") is string unitName)
-        {
-            ComInvoker.Set(doc, "Unit", UnitNames.ToEnumValue(unitName));
-        }
+        string? unitName = reader.Flag("unit");
+        int? unitValue = unitName is not null ? UnitNames.ToEnumValue(unitName) : null;
 
         double left = reader.Double("left");
         double top = reader.Double("top");
         double right = reader.Double("right");
         double bottom = reader.Double("bottom");
         double corner = reader.DoubleOrNull("corner-radius") ?? 0;
+
+        object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
+        if (unitValue is not null)
+        {
+            ComInvoker.Set(doc, "Unit", unitValue.Value);
+        }
 
         VerbGate.WarnIfUnavailable("shape.create-rect", corelVersion);
         object layer = ComInvoker.Get(doc, "ActiveLayer")!;
