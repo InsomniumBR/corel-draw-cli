@@ -28,10 +28,13 @@ public static class MacroCommands
         }
 
         var reader = new ArgReader(args[1..]);
-        string moduleName = reader.Flag("name")
-            ?? throw new ArgumentException("Missing required --name");
-        string filePath = reader.Flag("file")
-            ?? throw new ArgumentException("Missing required --file");
+        string? moduleName = reader.Flag("name");
+        string? filePath = reader.Flag("file");
+        if (string.IsNullOrEmpty(moduleName) || string.IsNullOrEmpty(filePath))
+        {
+            Console.Error.WriteLine("Usage: corel macro install --name <ModuleName> --file <path.bas>");
+            return 1;
+        }
 
         if (!File.Exists(filePath))
         {

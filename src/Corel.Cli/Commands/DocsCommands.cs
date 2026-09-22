@@ -40,42 +40,72 @@ public static class DocsCommands
         }
 
         object? activeDoc = ComInvoker.Get(app, "ActiveDocument");
-        string? activeName = activeDoc is null ? null : (string?)ComInvoker.Get(activeDoc, "Name");
+        int? activeIndex = activeDoc is null ? null : Convert.ToInt32(ComInvoker.Get(activeDoc, "Index"));
 
         for (int i = 1; i <= count; i++)
         {
             object doc = ComInvoker.Get(documents, "Item", i)!;
             string name = (string)ComInvoker.Get(doc, "Name")!;
-            string marker = name == activeName ? "  (active)" : "";
+            string marker = i == activeIndex ? "  (active)" : "";
             Console.WriteLine($"  [{i}] {name}{marker}");
         }
         return 0;
     }
 
+    /// <summary>Accepts a name or a `docs list` index; an ambiguous name errors rather than picking one silently.</summary>
     private static int Use(object app, string[] rest)
     {
         if (rest.Length == 0)
         {
-            Console.Error.WriteLine("Usage: corel docs use <name>");
+            Console.Error.WriteLine("Usage: corel docs use <name|index>");
             return 1;
         }
-        string name = rest[0];
+        string selector = rest[0];
 
         object documents = ComInvoker.Get(app, "Documents")!;
         int count = Convert.ToInt32(ComInvoker.Get(documents, "Count"));
+
+        if (int.TryParse(selector, out int index))
+        {
+            if (index < 1 || index > count)
+            {
+                Console.Error.WriteLine($"No document at index {index}. Use `docs list` to see open documents (1-{count}).");
+                return 1;
+            }
+            object indexed = ComInvoker.Get(documents, "Item", index)!;
+            string indexedName = (string)ComInvoker.Get(indexed, "Name")!;
+            ComInvoker.Call(indexed, "Activate");
+            Console.WriteLine($"Using document '{indexedName}' (index {index}).");
+            return 0;
+        }
+
+        List<int> matches = [];
         for (int i = 1; i <= count; i++)
         {
             object doc = ComInvoker.Get(documents, "Item", i)!;
-            if ((string)ComInvoker.Get(doc, "Name")! == name)
+            if ((string)ComInvoker.Get(doc, "Name")! == selector)
             {
-                ComInvoker.Call(doc, "Activate");
-                Console.WriteLine($"Using document '{name}'.");
-                return 0;
+                matches.Add(i);
             }
         }
 
-        Console.Error.WriteLine($"No open document named '{name}'. Use `docs list` to see open documents.");
-        return 1;
+        if (matches.Count == 0)
+        {
+            Console.Error.WriteLine($"No open document named '{selector}'. Use `docs list` to see open documents.");
+            return 1;
+        }
+        if (matches.Count > 1)
+        {
+            Console.Error.WriteLine(
+                $"Ambiguous: {matches.Count} open documents are named '{selector}' (indexes {string.Join(", ", matches)}). " +
+                "Use `docs use <index>` to disambiguate.");
+            return 1;
+        }
+
+        object target = ComInvoker.Get(documents, "Item", matches[0])!;
+        ComInvoker.Call(target, "Activate");
+        Console.WriteLine($"Using document '{selector}'.");
+        return 0;
     }
 
     private static int Active(object app)
