@@ -1,0 +1,34 @@
+# Same-Size Combination gallery-wall layout.
+#
+# 9 rectangles in a symmetric diamond (5 columns, depths 1-2-3-2-1). Every rectangle
+# is the SAME size (that's the point of the name) - all 9 are exactly 12x19in. The
+# page size (12x19) is just a size ANCHOR matching that one size, not a bounding box:
+# the full diamond arrangement (~70.7 x 61.8in) is much bigger than a single 12x19in
+# page and is expected to extend beyond the page boundary - that's by design.
+#
+# EDIT the `doc save --as` path below before running, then:
+#   corel script run scripts/samples/same-size-combination-12x19.cdx
+
+doc new
+page size --width 12 --height 19 --unit in
+
+# Column 1 (1 cell)
+shape create-rect --left 0.000 --top 40.375 --right 12.000 --bottom 21.375
+
+# Column 2 (2 cells)
+shape create-rect --left 14.684 --top 51.063 --right 26.684 --bottom 32.063
+shape create-rect --left 14.684 --top 29.688 --right 26.684 --bottom 10.688
+
+# Column 3 (3 cells, center)
+shape create-rect --left 29.368 --top 61.750 --right 41.368 --bottom 42.750
+shape create-rect --left 29.368 --top 40.375 --right 41.368 --bottom 21.375
+shape create-rect --left 29.368 --top 19.000 --right 41.368 --bottom 0.000
+
+# Column 4 (2 cells)
+shape create-rect --left 44.053 --top 51.063 --right 56.053 --bottom 32.063
+shape create-rect --left 44.053 --top 29.688 --right 56.053 --bottom 10.688
+
+# Column 5 (1 cell)
+shape create-rect --left 58.737 --top 40.375 --right 70.737 --bottom 21.375
+
+doc save --as "C:\Users\YOUR-NAME\Documents\Same-Size-Combination-12x19.cdr"

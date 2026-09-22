@@ -4,6 +4,16 @@ A command-line interface and interactive shell for driving a **running CorelDRAW
 instance** via its COM automation object model (the same VBA-compatible API exposed by
 `VGCore.dll`). Built as a generic, reusable tool — not tied to any specific project.
 
+**The goal**: give you (or an AI agent) three interchangeable ways to manipulate
+CorelDRAW — one-shot commands, a `.cdx` script for anything with more than a couple of
+shapes, or an interactive shell for exploration — all sharing one command grammar, so
+nothing you can do in one is unreachable from the others.
+
+**Agent-compatible by design.** If you're pointing an AI coding agent at CorelDRAW
+work, see [`AGENTS.md`](AGENTS.md) — it's the single source of truth for agent-facing
+usage (setup, full command reference, gotchas, and the recommended workflow for
+building a layout from scratch). This README covers the same tool for humans.
+
 Every technical claim in this README was verified against a real, running CorelDRAW X7
 instance, not assumed from documentation.
 
@@ -35,23 +45,30 @@ within the one automatable process (`corel docs list` / `docs use`).
 
 ## Getting started
 
-From a clone of this repo, with CorelDRAW already open:
+Install as a .NET global tool (requires .NET SDK 10.0+):
 
 ```powershell
-cd src/Corel.Cli
-dotnet run -r win-x64 --self-contained false -- detect
-dotnet run -r win-x64 --self-contained false -- schema generate
+git clone https://github.com/InsomniumBR/corel-draw-cli
+cd corel-draw-cli
+dotnet pack src/Corel.Cli/Corel.Cli.csproj -c Release -o ./nupkg
+dotnet tool install -g --add-source ./nupkg corel-draw-cli
 ```
 
-`detect` finds your CorelDRAW installation(s) via the registry and caches the result at
-`%LOCALAPPDATA%\corel-draw-cli\installs.json`. `schema generate` scans that version's
-type library and caches a full capability manifest at
+This puts `corel` on your PATH. With CorelDRAW already open, run the one-time setup:
+
+```powershell
+corel detect           # finds your CorelDRAW installation(s) via the registry
+corel schema generate  # caches that version's full object-model manifest
+```
+
+`detect` caches the result at `%LOCALAPPDATA%\corel-draw-cli\installs.json`.
+`schema generate` scans the type library and caches a full capability manifest at
 `%LOCALAPPDATA%\corel-draw-cli\schemas\corel-<version>.json` — this is what powers the
 verb-availability warnings described below. Both only need to be run once (or again
 after a CorelDRAW update, via re-running `detect`).
 
-The rest of this README drops the `dotnet run -r win-x64 --self-contained false --`
-prefix and just shows `corel <command>` for readability.
+Working on the CLI itself instead of just using it? Run straight from source:
+`dotnet run --project src/Corel.Cli -- <command>`.
 
 ## Command reference
 
@@ -59,6 +76,8 @@ prefix and just shows `corel <command>` for readability.
 
 | Command | Does |
 |---|---|
+| `corel doc new` | Create a blank document |
+| `corel doc save [--as <path>]` | Save (`SaveAs` when `--as` is given; target directory must already exist) |
 | `corel docs list` | List open documents; marks the active one |
 | `corel docs use <name>` | Make a document active (calls its real `Activate()`) |
 | `corel docs active` | Print the active document's name |
@@ -141,6 +160,24 @@ prints a warning at the point it runs).
 > ChemDraw's molecule format). Unlikely to collide in practice for this niche use, but
 > worth knowing if you have those tools installed too.
 
+### Samples
+
+`scripts/samples/` has complete, verified example scripts:
+
+| Script | Builds |
+|---|---|
+| `hello-rectangle.cdx` | A minimal single-rectangle example |
+| `outer-aligned-12x19.cdx` | An 8-rectangle gallery-wall layout, 4 alternating columns, anchored so the biggest rectangles are exactly 12×19in and the rest scale proportionally from that anchor (the full arrangement is ~55.5×30.8in — much bigger than the 12×19 page, which is just a size reference, not a bounding box) |
+| `same-size-combination-12x19.cdx` | A 9-rectangle symmetric diamond where every rectangle is the same exact size (12×19in), same anchor-not-bounding-box approach |
+
+The two gallery-wall samples have a placeholder `doc save --as` path
+(`C:\Users\YOUR-NAME\Documents\...`) — edit it to a real, existing directory before
+running:
+
+```powershell
+corel script run scripts/samples/outer-aligned-12x19.cdx
+```
+
 ### Macros
 
 ```powershell
@@ -204,6 +241,7 @@ corel schema generate
 ## Project layout
 
 ```
+AGENTS.md              agent-facing reference (setup, commands, gotchas, workflow)
 src/
   Corel.Schema/       type-library scanner + capability manifest model (no COM needed)
   Corel.Automation/   COM attach, late-bound invoker, install detection, VBA plumbing

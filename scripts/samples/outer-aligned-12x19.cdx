@@ -1,0 +1,33 @@
+# Outer-Aligned gallery-wall layout.
+#
+# 8 rectangles in 4 columns, alternating tall/short cells. The page size (12x19) is
+# just a size ANCHOR, not a bounding box: the biggest ("tall") rectangles are exactly
+# 12x19in, and every other rectangle is scaled proportionally from that same anchor
+# (scaleX = 12/originalPixelWidth, scaleY = 19/originalPixelHeight, applied uniformly
+# to every rectangle). The full arrangement (~55.5 x 30.8in) is much bigger than a
+# single 12x19in page and is expected to extend beyond the page boundary - that's by
+# design, not a bug.
+#
+# EDIT the `doc save --as` path below before running, then:
+#   corel script run scripts/samples/outer-aligned-12x19.cdx
+
+doc new
+page size --width 12 --height 19 --unit in
+
+# Column 1: short-bottom + tall-top
+shape create-rect --left 0.000 --top 9.116 --right 12.000 --bottom 0.000
+shape create-rect --left 0.000 --top 30.751 --right 12.000 --bottom 11.751
+
+# Column 2: tall-bottom + short-top
+shape create-rect --left 14.487 --top 19.000 --right 26.487 --bottom 0.000
+shape create-rect --left 14.487 --top 30.751 --right 26.487 --bottom 21.636
+
+# Column 3: short-bottom + tall-top
+shape create-rect --left 28.975 --top 9.116 --right 40.975 --bottom 0.000
+shape create-rect --left 28.975 --top 30.751 --right 40.975 --bottom 11.751
+
+# Column 4: tall-bottom + short-top
+shape create-rect --left 43.462 --top 19.000 --right 55.462 --bottom 0.000
+shape create-rect --left 43.462 --top 30.751 --right 55.462 --bottom 21.636
+
+doc save --as "C:\Users\YOUR-NAME\Documents\Outer-Aligned-12x19.cdr"
