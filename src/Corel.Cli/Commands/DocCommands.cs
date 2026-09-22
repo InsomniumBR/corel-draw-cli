@@ -52,7 +52,32 @@ public static class DocCommands
             ComInvoker.Call(app, "InitializeVBA");
             ComInvoker.Set(options, "EmbedVBAProject", true);
         }
-        SaveDialogWatchdog.RunWithAutoDismiss(() => ComInvoker.Call(doc, "SaveAs", path, options));
+
+        void SaveAsAction() => ComInvoker.Call(doc, "SaveAs", path, options);
+
+        // Resolving which process to watch is isolated from the save itself: a failure
+        // here only disables the watchdog (a defense-in-depth safety net), it must
+        // never be confused with - or swallow - a real failure from SaveAs below.
+        uint? corelProcessId;
+        try
+        {
+            corelProcessId = SaveDialogWatchdog.ResolveCorelProcessId(app);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Warning: could not resolve CorelDRAW's process for the save-dialog watchdog ({ex.Message}); saving without it.");
+            corelProcessId = null;
+        }
+
+        if (corelProcessId is uint pid)
+        {
+            SaveDialogWatchdog.RunWithAutoDismiss(pid, SaveAsAction);
+        }
+        else
+        {
+            SaveAsAction();
+        }
+
         Console.WriteLine($"Saved to {path}");
         return 0;
     }

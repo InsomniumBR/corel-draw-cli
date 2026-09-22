@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 
 // COM automation against CorelDRAW is inherently Windows-only. Targets plain net10.0
@@ -5,3 +6,5 @@ using System.Runtime.Versioning;
 // dotnet tool (PackAsTool rejects platform-specific TFMs) - this attribute keeps the
 // platform-compatibility analyzer accurate without that TFM restriction.
 [assembly: SupportedOSPlatform("windows")]
+
+[assembly: InternalsVisibleTo("Corel.Automation.Tests")]
