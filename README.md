@@ -107,6 +107,16 @@ Pass the literal string `null` for any argument you want treated as an omitted o
 COM parameter (it maps to `Type.Missing` — this is how `CreateRectangle`'s four optional
 corner-rounding parameters get skipped above).
 
+**`raw get` is not guaranteed to be read-only.** Some COM libraries (VBIDE among them)
+expose an indexed accessor as a method rather than a property, so the invoker has to
+combine `GetProperty|InvokeMethod` to work at all — which means `raw get
+ActiveDocument.Close` really does invoke `Close` and close the document. Treat any
+`raw get` on an unfamiliar member as potentially action-performing, not a safe probe.
+
+If a `raw` call fails with an unfamiliar COM error (unknown member, wrong argument
+count), run `corel schema generate` and check the cached manifest — it's the source of
+truth for what actually exists and what a member's real parameters are.
+
 ### Interactive shell
 
 ```
