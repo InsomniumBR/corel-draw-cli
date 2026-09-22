@@ -114,6 +114,15 @@ corel docs active                                # print the active document's n
 
 corel page size                                  # print active page size
 corel page size --width W --height H [--unit U]  # resize active page
+corel page add [--after N]                       # add a page, appended or after page N
+corel page delete --index N                      # delete a page by 1-based index
+corel page goto --index N                        # make a page active by 1-based index
+corel page list                                  # list pages, marks active
+
+corel layer list                                 # list layers on the active page, marks active
+corel layer add --name <name>                    # create a layer on the active page (becomes active)
+corel layer use (--name <name>|--index N)        # make a layer active
+corel layer delete (--name <name>|--index N)     # delete a layer from the active page
 
 corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]
 corel shape list [--json]                        # list shapes on the active layer

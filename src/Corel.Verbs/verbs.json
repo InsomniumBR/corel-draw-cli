@@ -124,5 +124,68 @@
     "raw": { "call": "ActiveDocument.Redo" },
     "requiresInterface": "IVGDocument",
     "requiresMember": "Redo"
+  },
+  {
+    "name": "page.add",
+    "group": "page",
+    "raw": { "call": "ActiveDocument.AddPages" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "AddPages"
+  },
+  {
+    "name": "page.insert",
+    "group": "page",
+    "raw": { "call": "ActiveDocument.InsertPages" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "InsertPages"
+  },
+  {
+    "name": "page.delete",
+    "group": "page",
+    "raw": { "call": "ActiveDocument.Pages.Item(N).Delete" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "Delete"
+  },
+  {
+    "name": "page.goto",
+    "group": "page",
+    "raw": { "call": "ActiveDocument.Pages.Item(N).Activate" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "Activate"
+  },
+  {
+    "name": "page.list",
+    "group": "page",
+    "raw": { "get": "ActiveDocument.Pages" },
+    "requiresInterface": "IVGDocument",
+    "requiresMember": "Pages"
+  },
+  {
+    "name": "layer.list",
+    "group": "layer",
+    "raw": { "get": "ActiveDocument.ActivePage.Layers" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "Layers"
+  },
+  {
+    "name": "layer.add",
+    "group": "layer",
+    "raw": { "call": "ActiveDocument.ActivePage.CreateLayer" },
+    "requiresInterface": "IVGPage",
+    "requiresMember": "CreateLayer"
+  },
+  {
+    "name": "layer.use",
+    "group": "layer",
+    "raw": { "call": "ActiveDocument.ActivePage.Layers.Item(N).Activate" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "Activate"
+  },
+  {
+    "name": "layer.delete",
+    "group": "layer",
+    "raw": { "call": "ActiveDocument.ActivePage.Layers.Item(N).Delete" },
+    "requiresInterface": "IVGLayer",
+    "requiresMember": "Delete"
   }
 ]

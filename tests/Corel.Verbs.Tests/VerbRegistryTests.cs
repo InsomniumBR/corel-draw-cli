@@ -39,10 +39,11 @@ public class VerbRegistryTests
     public void Registry_DoesNotContainVerbsWithNoCorrespondingCommand()
     {
         // Regression guard: these had no VerbGate call site anywhere and were removed.
+        // layer.list was removed here too, but task 24 added a real `layer list` command
+        // and re-registered it - only doc.unit.get and layer.active remain gone.
         VerbRegistry registry = VerbRegistry.LoadEmbedded();
 
         Assert.Null(registry.Find("doc.unit.get"));
-        Assert.Null(registry.Find("layer.list"));
         Assert.Null(registry.Find("layer.active"));
     }
 

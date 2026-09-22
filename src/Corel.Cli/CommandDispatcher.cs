@@ -55,6 +55,7 @@ public static class CommandDispatcher
             "page" => PageCommands.Run(commandArgs, session.App, session.Version),
             "shape" => ShapeCommands.Run(commandArgs, session.App, session.Version),
             "docs" => DocsCommands.Run(commandArgs, session.App, session.Version),
+            "layer" => LayerCommands.Run(commandArgs, session.App, session.Version),
             "doc" => DocCommands.Run(commandArgs, session.App, session.Version),
             "macro" => MacroCommands.Run(commandArgs, session.App, session.Version),
             "image" => ImageCommands.Run(commandArgs, session.App, session.Version),
