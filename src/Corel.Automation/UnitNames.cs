@@ -22,6 +22,10 @@ public static class UnitNames
         ["pt"] = 14, ["point"] = 14, ["points"] = 14,
     };
 
+    public static IReadOnlyCollection<string> Known => Map.Keys;
+
+    public static bool IsKnown(string name) => Map.ContainsKey(name);
+
     public static int ToEnumValue(string name)
         => Map.TryGetValue(name, out int value)
             ? value

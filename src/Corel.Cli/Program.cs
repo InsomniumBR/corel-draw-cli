@@ -2,25 +2,25 @@ using Corel.Automation;
 using Corel.Cli;
 using Corel.Schema;
 
+// Running `corel` bare is the documented install check, so it is a successful
+// "show usage", not an error.
 if (args.Length == 0)
 {
-    Console.WriteLine("Usage: corel <command> [args...]");
-    Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size,");
-    Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>,");
-    Console.WriteLine("          doc <new|save [--as path]>, macro install --name N --file F.bas,");
-    Console.WriteLine("          script run <file.cdx> [--vars K=V,K2=V2] [--force], shell");
-    return 1;
+    Console.WriteLine(HelpText.Overview());
+    return 0;
 }
 
-(string[] afterVersion, string? corelVersion) = ExtractGlobalFlag(args, "--corel-version");
-(string[] afterVars, string? varsRaw) = ExtractGlobalFlag(afterVersion, "--vars");
-(string[] rest, bool force) = ExtractBoolFlag(afterVars, "--force");
-Dictionary<string, string> vars = ScriptVars.Parse(varsRaw);
+(string[] rest, string? corelVersion) = ExtractLeadingGlobals(args);
+if (rest.Length == 0)
+{
+    Console.WriteLine(HelpText.Overview());
+    return 0;
+}
 
 using var host = new StaThreadHost();
 try
 {
-    return host.Invoke(() => Run(rest, corelVersion, vars, force));
+    return host.Invoke(() => Run(rest, corelVersion));
 }
 catch (Exception ex)
 {
@@ -28,74 +28,36 @@ catch (Exception ex)
     return 1;
 }
 
-static int Run(string[] args, string? corelVersion, Dictionary<string, string> vars, bool force)
+static int Run(string[] args, string? corelVersion)
 {
-    if (args[0] == "shell")
-    {
-        (object shellApp, string? shellVersion) = Connect(corelVersion);
-        return Repl.Run(shellApp, shellVersion);
-    }
-
-    if (args[0] == "script" && args.Length > 1 && args[1] == "run")
-    {
-        if (args.Length < 3)
-        {
-            Console.Error.WriteLine("Usage: corel script run <file.cdx> [--vars K=V,K2=V2] [--force]");
-            return 1;
-        }
-        (object scriptApp, string? scriptVersion) = Connect(corelVersion);
-        return ScriptRunner.Run(args[2], scriptApp, scriptVersion, vars, force);
-    }
-
-    return CommandDispatcher.Dispatch(args, () => Connect(corelVersion));
+    CorelSession session = CreateSession(corelVersion);
+    return args[0] == "shell"
+        ? Repl.Run(session)
+        : CommandDispatcher.Dispatch(args, session);
 }
 
-static (object App, string? Version) Connect(string? corelVersion)
+static CorelSession CreateSession(string? corelVersion)
 {
     InstallRecord? record = InstallStore.Load();
-    string progId = ComAttach.DefaultProgId;
-    string? resolvedVersion = null;
-    if (record is not null)
+    if (record is null)
     {
-        CorelInstall install = CorelVersionResolver.Resolve(record, corelVersion);
-        progId = install.ProgId;
-        resolvedVersion = install.Version;
+        return new CorelSession(null, () => ComAttach.Attach(ComAttach.DefaultProgId));
     }
-    return (ComAttach.Attach(progId), resolvedVersion);
+
+    CorelInstall install = CorelVersionResolver.Resolve(record, corelVersion);
+    return new CorelSession(install.Version, () => ComAttach.Attach(install.ProgId));
 }
 
-static (string[] Remaining, string? Value) ExtractGlobalFlag(string[] args, string flagName)
+// Only the leading run of arguments is scanned, so a command's own --force/--vars-shaped
+// flag can never be mistaken for a global one.
+static (string[], string?) ExtractLeadingGlobals(string[] args)
 {
-    var rest = new List<string>();
-    string? value = null;
-    for (int i = 0; i < args.Length; i++)
+    string? version = null;
+    int i = 0;
+    while (i + 1 < args.Length && args[i] == "--corel-version")
     {
-        if (args[i] == flagName && i + 1 < args.Length)
-        {
-            value = args[++i];
-        }
-        else
-        {
-            rest.Add(args[i]);
-        }
+        version = args[i + 1];
+        i += 2;
     }
-    return ([.. rest], value);
-}
-
-static (string[] Remaining, bool Present) ExtractBoolFlag(string[] args, string flagName)
-{
-    var rest = new List<string>();
-    bool present = false;
-    foreach (string arg in args)
-    {
-        if (arg == flagName)
-        {
-            present = true;
-        }
-        else
-        {
-            rest.Add(arg);
-        }
-    }
-    return ([.. rest], present);
+    return (args[i..], version);
 }

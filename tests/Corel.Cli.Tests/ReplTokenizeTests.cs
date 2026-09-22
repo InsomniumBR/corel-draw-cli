@@ -40,4 +40,20 @@ public class ReplTokenizeTests
         Assert.Empty(Repl.Tokenize(""));
         Assert.Empty(Repl.Tokenize("   "));
     }
+
+    [Fact]
+    public void Tokenize_RejectsAnUnterminatedQuote()
+    {
+        Assert.False(Repl.TryTokenize("doc save --as \"C:\\out\\file.cdr", out _, out string? error));
+        Assert.Contains("unterminated quote", error);
+        Assert.Throws<FormatException>(() => Repl.Tokenize("\"still open"));
+    }
+
+    [Fact]
+    public void Tokenize_DoubledQuoteInsideQuotesIsALiteralQuote()
+        => Assert.Equal(["docs", "use", "a\"b"], Repl.Tokenize("docs use \"a\"\"b\""));
+
+    [Fact]
+    public void Tokenize_DoubledQuoteAloneIsAnEmptyToken()
+        => Assert.Equal(["docs", "use", ""], Repl.Tokenize("docs use \"\""));
 }
