@@ -170,13 +170,18 @@ prints a warning at the point it runs).
 | `outer-aligned-12x19.cdx` | An 8-rectangle gallery-wall layout, 4 alternating columns, anchored so the biggest rectangles are exactly 12×19in and the rest scale proportionally from that anchor (the full arrangement is ~55.5×30.8in — much bigger than the 12×19 page, which is just a size reference, not a bounding box) |
 | `same-size-combination-12x19.cdx` | A 9-rectangle symmetric diamond where every rectangle is the same exact size (12×19in), same anchor-not-bounding-box approach |
 
-The two gallery-wall samples have a placeholder `doc save --as` path
-(`C:\Users\YOUR-NAME\Documents\...`) — edit it to a real, existing directory before
-running:
+The two gallery-wall samples end with `doc save --as "${OUTPUT}"` — pass the real path
+with `--output` (the target directory must already exist):
 
 ```powershell
-corel script run scripts/samples/outer-aligned-12x19.cdx
+corel script run scripts/samples/outer-aligned-12x19.cdx --output "C:\path\to\Outer-Aligned-12x19.cdr"
 ```
+
+`${OUTPUT}` is a general substitution token any `.cdx` script can use anywhere in any
+line (not just in a save path) — `corel script run` replaces every occurrence with
+`--output`'s value before running. If a script uses `${OUTPUT}` and `--output` is
+omitted, the run is rejected up front (same fail-before-doing-anything philosophy as
+the preflight check below), rather than saving somewhere unexpected.
 
 ### Macros
 

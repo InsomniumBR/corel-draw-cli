@@ -98,7 +98,7 @@ corel raw set <dotted.path> <value>
 corel raw call <dotted.path> [args...]           # pass the literal string `null` for
                                                   # an omitted optional COM parameter
 
-corel script run <file.cdx> [--force]            # run a script
+corel script run <file.cdx> [--output <path>] [--force]  # run a script
 corel shell                                      # interactive REPL
 
 corel detect / corel schema generate             # (re-)run first-time setup
@@ -133,8 +133,11 @@ member that's actually confirmed to exist, with its real parameter names.
    explicitly what's wanted (see `scripts/samples/` for both variants).
 2. Write one `.cdx` script: `doc new`, `page size` (a size reference, useful as an
    anchor even when the actual shapes extend beyond it), one `shape create-rect` line
-   per rectangle, then `doc save --as <path>` (directory must already exist).
-3. `corel script run` it.
+   per rectangle, then `doc save --as "${OUTPUT}"` — use the `${OUTPUT}` token rather
+   than hardcoding a path, so the same script is reusable with any destination.
+3. `corel script run <file>.cdx --output <path>` it (directory must already exist —
+   omitting `--output` when the script uses `${OUTPUT}` is rejected up front, before
+   anything runs).
 4. **Verify by reading the data back — don't just trust the command output.** Open the
    saved file (or use the still-open document) and check actual shape positions/sizes:
    ```
