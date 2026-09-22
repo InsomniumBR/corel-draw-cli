@@ -23,7 +23,7 @@ public static class DocsCommands
         return args[0] switch
         {
             "list" => List(app, corelVersion),
-            "use" => Use(app, args[1..]),
+            "use" => Use(app, args[1..], corelVersion),
             "active" => Active(app, corelVersion),
             _ => Unknown(args[0]),
         };
@@ -54,13 +54,14 @@ public static class DocsCommands
     }
 
     /// <summary>Accepts a name or a `docs list` index; an ambiguous name errors rather than picking one silently.</summary>
-    private static int Use(object app, string[] rest)
+    private static int Use(object app, string[] rest, string? corelVersion)
     {
         if (rest.Length == 0)
         {
             Console.Error.WriteLine("Usage: corel docs use <name|index>");
             return 1;
         }
+        VerbGate.WarnIfUnavailable("docs.use", corelVersion);
         string selector = rest[0];
 
         object documents = ComInvoker.Get(app, "Documents")!;
