@@ -1,5 +1,3 @@
-using Corel.Verbs;
-
 namespace Corel.Verbs.Tests;
 
 public class VerbRegistryTests

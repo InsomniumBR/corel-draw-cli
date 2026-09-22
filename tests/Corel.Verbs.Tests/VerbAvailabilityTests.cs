@@ -1,5 +1,4 @@
 using Corel.Schema;
-using Corel.Verbs;
 
 namespace Corel.Verbs.Tests;
 

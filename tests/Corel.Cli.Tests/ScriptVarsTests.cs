@@ -1,5 +1,3 @@
-using Corel.Cli;
-
 namespace Corel.Cli.Tests;
 
 public class ScriptVarsTests

@@ -9,3 +9,6 @@ nupkg/
 # IDE
 .vs/
 .idea/
+
+# Husky setup marker (see setupRepo.ps1)
+.installed

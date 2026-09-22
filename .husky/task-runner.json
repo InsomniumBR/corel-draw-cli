@@ -1,0 +1,31 @@
+{
+  "tasks": [
+    {
+      "name": "Run dotnet format",
+      "command": "dotnet",
+      "args": [ "format" ],
+      "windows": {
+        "command": "dotnet",
+        "args": [ "format" ]
+      }
+    },
+    {
+      "name": "Run build",
+      "command": "dotnet",
+      "args": [ "build", "/clp:ErrorsOnly" ],
+      "windows": {
+        "command": "dotnet",
+        "args": [ "build", "/clp:ErrorsOnly" ]
+      }
+    },
+    {
+      "name": "Run tests",
+      "command": "dotnet",
+      "args": [ "test", "--no-build", "--logger:console;verbosity=quiet", "--nologo" ],
+      "windows": {
+        "command": "dotnet",
+        "args": [ "test", "--no-build", "--logger:console;verbosity=quiet", "--nologo" ]
+      }
+    }
+  ]
+}
