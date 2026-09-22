@@ -56,9 +56,20 @@ public class CommandValidatorTests
     [Fact]
     public void Validate_RejectsUnknownFlag()
     {
-        string? error = CommandValidator.Validate(["shape", "list", "--depth", "3"]);
+        string? error = CommandValidator.Validate(["docs", "list", "--depth", "3"]);
         Assert.Contains("unknown flag '--depth'", error);
         Assert.Contains("it takes no flags", error);
+    }
+
+    [Fact]
+    public void Validate_AcceptsShapeListWithJsonFlag()
+    {
+        // shape.rename/image.import and shape.list --json were added to the grammar
+        // during the merge that integrated this task with tasks 15/18/19 - verify they
+        // did not silently drop out of structural validation.
+        Assert.Null(CommandValidator.Validate(["shape", "list", "--json"]));
+        Assert.Null(CommandValidator.Validate(["shape", "rename", "--index", "1", "--name", "foo"]));
+        Assert.Null(CommandValidator.Validate(["image", "import", "--file", "x.png", "--into", "foo"]));
     }
 
     [Fact]
