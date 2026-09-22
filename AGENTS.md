@@ -92,7 +92,7 @@ corel page size                                  # print active page size
 corel page size --width W --height H [--unit U]  # resize active page
 
 corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]
-corel shape list                                 # list shapes on the active layer
+corel shape list [--json]                        # list shapes on the active layer
 corel shape delete --index N                     # delete by 1-based position - remaining
                                                   # shapes renumber immediately after
 
@@ -166,12 +166,11 @@ confusingly partway through.
    ```
    raw get ActiveDocument.ActivePage.SizeWidth
    raw get ActiveDocument.ActivePage.SizeHeight
+   corel shape list --json
    ```
-   and for each shape, its `LeftX`/`TopY`/`RightX`/`BottomY`/`SizeWidth`/`SizeHeight`
-   (via `raw get`, or a short throwaway program using the same `Type.InvokeMember`
-   pattern as `src/Corel.Automation/ComInvoker.cs` if you need to loop over many
-   shapes at once — there's no single CLI command that dumps every shape's exact
-   geometry yet).
+   `shape list --json` dumps every shape's index, resolved type name, name, and
+   `LeftX`/`TopY`/`RightX`/`BottomY`/`SizeWidth`/`SizeHeight` geometry in one call — the
+   normal way to check several shapes at once, no throwaway program needed.
 5. Clean up stray test documents when you're done iterating — CorelDRAW is a live GUI
    app a human may be watching, not a sandboxed test harness. Close documents you
    created for verification once you've confirmed the result.

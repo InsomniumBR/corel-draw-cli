@@ -84,7 +84,7 @@ Working on the CLI itself instead of just using it? Run straight from source:
 | `corel page size` | Print the active page's size |
 | `corel page size --width W --height H [--unit in\|mm\|...]` | Resize the active page |
 | `corel shape create-rect --left L --top T --right R --bottom B [--unit U] [--corner-radius N]` | Create a rectangle on the active layer |
-| `corel shape list` | List shapes on the active layer |
+| `corel shape list [--json]` | List shapes on the active layer (type names resolved from the cached manifest; `--json` also dumps geometry) |
 | `corel shape delete --index N` | Delete a shape by its 1-based position (see `shape list`). Remaining shapes renumber immediately after - re-run `shape list` before deleting another by index, don't delete a batch of indexes computed up front |
 | `corel macro install --name <Module> --file <path.bas>` | Inject VBA source into the active document's own VBA project |
 
