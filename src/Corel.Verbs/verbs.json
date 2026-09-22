@@ -21,13 +21,6 @@
     "requiresMember": "Save"
   },
   {
-    "name": "doc.unit.get",
-    "group": "doc",
-    "raw": { "get": "ActiveDocument.Unit" },
-    "requiresInterface": "IVGDocument",
-    "requiresMember": "Unit"
-  },
-  {
     "name": "doc.unit.set",
     "group": "doc",
     "raw": { "set": "ActiveDocument.Unit" },
@@ -49,20 +42,6 @@
     "requiresMember": "SetSize"
   },
   {
-    "name": "layer.list",
-    "group": "layer",
-    "raw": { "get": "ActiveDocument.Layers" },
-    "requiresInterface": "IVGDocument",
-    "requiresMember": "Layers"
-  },
-  {
-    "name": "layer.active",
-    "group": "layer",
-    "raw": { "get": "ActiveDocument.ActiveLayer" },
-    "requiresInterface": "IVGDocument",
-    "requiresMember": "ActiveLayer"
-  },
-  {
     "name": "shape.create-rect",
     "group": "shape",
     "raw": { "call": "ActiveDocument.ActiveLayer.CreateRectangle" },
@@ -79,7 +58,7 @@
   {
     "name": "shape.delete",
     "group": "shape",
-    "raw": { "call": "Delete" },
+    "raw": { "call": "ActiveDocument.ActiveLayer.Shapes.Item(N).Delete" },
     "requiresInterface": "IVGShape",
     "requiresMember": "Delete"
   },

@@ -239,11 +239,16 @@ entry to `src/Corel.Verbs/verbs.json`:
 }
 ```
 
-`requiresInterface`/`requiresMember` are what the availability check and script
-preflight validate against a version's cached manifest — set them to whatever the raw
-operation actually touches, and add a small command handler under
-`src/Corel.Cli/Commands/` if you want dedicated flags rather than routing through
-`raw`. A generated capability manifest is a very effective reference here:
+`requiresInterface`/`requiresMember` are the only fields anything reads at runtime —
+they're what the availability check (`VerbGate`, one-shot commands) and script
+preflight validate against a version's cached manifest. The `raw` field is
+documentation only, for a human reading this file: it names the underlying operation
+so you know what to point `requiresInterface`/`requiresMember` at. Adding a verbs.json
+entry does not by itself make the verb do anything — you still need a command handler
+under `src/Corel.Cli/Commands/` (wired into `CommandDispatcher`) that performs the
+operation and calls `VerbGate.WarnIfUnavailable` with this verb's name. A generated
+capability manifest is a very effective reference for picking real interface/member
+names:
 
 ```powershell
 corel schema generate

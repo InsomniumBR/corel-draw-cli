@@ -9,11 +9,10 @@ namespace Corel.Verbs;
 /// area means adding entries here, not writing a new curated command from scratch.
 /// </summary>
 /// <remarks>
-/// For a composite verb (one that reads/writes several properties, e.g. "doc.info"), Raw
-/// is a representative anchor for the availability check, not necessarily the verb's
-/// entire implementation - the CLI command handler (Corel.Cli) may make additional calls
-/// beyond this single binding. RequiresInterface/RequiresMember drive
-/// <see cref="VerbAvailability.IsAvailable"/>.
+/// Only RequiresInterface/RequiresMember are consulted by <see cref="VerbAvailability.IsAvailable"/>.
+/// Raw is descriptive only (see <see cref="VerbRawBinding"/>) - for a composite verb (one
+/// that reads/writes several properties), it names a representative operation, not
+/// necessarily the CLI command handler's entire implementation.
 /// </remarks>
 public sealed class VerbDefinition
 {
@@ -24,7 +23,12 @@ public sealed class VerbDefinition
     public string? RequiresMember { get; init; }
 }
 
-/// <summary>Exactly one of these is normally set, matching the verb's operation kind.</summary>
+/// <summary>
+/// Documentation only - describes the underlying raw operation for a human reading
+/// verbs.json or the README, one of Get/Set/Call matching the verb's operation kind.
+/// Nothing at runtime reads these values; only <see cref="VerbDefinition.RequiresInterface"/>
+/// and <see cref="VerbDefinition.RequiresMember"/> drive actual behavior.
+/// </summary>
 public sealed class VerbRawBinding
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

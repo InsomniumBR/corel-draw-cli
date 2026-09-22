@@ -18,8 +18,8 @@ public static class ShapeCommands
         return sub switch
         {
             "create-rect" => CreateRect(app, reader, corelVersion),
-            "list" => List(app),
-            "delete" => Delete(app, reader),
+            "list" => List(app, corelVersion),
+            "delete" => Delete(app, reader, corelVersion),
             "rename" => Rename(app, reader),
             _ => Unknown(sub),
         };
@@ -42,6 +42,7 @@ public static class ShapeCommands
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
         if (reader.Flag("unit") is string unitName)
         {
+            VerbGate.WarnIfUnavailable("doc.unit.set", corelVersion);
             ComInvoker.Set(doc, "Unit", UnitNames.ToEnumValue(unitName));
         }
 
@@ -54,8 +55,9 @@ public static class ShapeCommands
         return 0;
     }
 
-    private static int List(object app)
+    private static int List(object app, string? corelVersion)
     {
+        VerbGate.WarnIfUnavailable("shape.list", corelVersion);
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
         object layer = ComInvoker.Get(doc, "ActiveLayer")!;
         object shapes = ComInvoker.Get(layer, "Shapes")!;
@@ -75,7 +77,7 @@ public static class ShapeCommands
         return 0;
     }
 
-    private static int Delete(object app, ArgReader reader)
+    private static int Delete(object app, ArgReader reader, string? corelVersion)
     {
         string? indexArg = reader.Flag("index");
         if (string.IsNullOrEmpty(indexArg) || !int.TryParse(indexArg, out int index))
@@ -84,6 +86,7 @@ public static class ShapeCommands
             return 1;
         }
 
+        VerbGate.WarnIfUnavailable("shape.delete", corelVersion);
         object doc = ComInvoker.ResolvePath(app, "ActiveDocument")!;
         object layer = ComInvoker.Get(doc, "ActiveLayer")!;
         object shapes = ComInvoker.Get(layer, "Shapes")!;

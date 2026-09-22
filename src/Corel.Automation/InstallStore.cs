@@ -42,7 +42,15 @@ public static class InstallStore
         {
             return null;
         }
-        return CapabilityManifestSerializer.Deserialize(File.ReadAllText(path));
+
+        CapabilityManifest manifest = CapabilityManifestSerializer.Deserialize(File.ReadAllText(path));
+        if (manifest.SchemaVersion != CapabilityManifest.CurrentSchemaVersion)
+        {
+            Console.Error.WriteLine(
+                $"Warning: cached manifest '{path}' has schema version {manifest.SchemaVersion}, expected {CapabilityManifest.CurrentSchemaVersion}. Ignoring; run `corel schema generate` to regenerate.");
+            return null;
+        }
+        return manifest;
     }
 
     public static void SaveManifest(CapabilityManifest manifest)

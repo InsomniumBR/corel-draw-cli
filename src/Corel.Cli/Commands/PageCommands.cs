@@ -32,6 +32,7 @@ public static class PageCommands
 
         if (unitValue is not null)
         {
+            VerbGate.WarnIfUnavailable("doc.unit.set", corelVersion);
             ComInvoker.Set(doc, "Unit", unitValue.Value);
         }
 
@@ -43,6 +44,7 @@ public static class PageCommands
         }
         else
         {
+            VerbGate.WarnIfUnavailable("page.size.get", corelVersion);
             object? w = ComInvoker.Get(page, "SizeWidth");
             object? h = ComInvoker.Get(page, "SizeHeight");
             Console.WriteLine($"{w} x {h}");

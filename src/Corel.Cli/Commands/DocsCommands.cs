@@ -12,7 +12,7 @@ namespace Corel.Cli.Commands;
 /// </summary>
 public static class DocsCommands
 {
-    public static int Run(string[] args, object app)
+    public static int Run(string[] args, object app, string? corelVersion)
     {
         if (args.Length == 0)
         {
@@ -22,15 +22,16 @@ public static class DocsCommands
 
         return args[0] switch
         {
-            "list" => List(app),
+            "list" => List(app, corelVersion),
             "use" => Use(app, args[1..]),
-            "active" => Active(app),
+            "active" => Active(app, corelVersion),
             _ => Unknown(args[0]),
         };
     }
 
-    private static int List(object app)
+    private static int List(object app, string? corelVersion)
     {
+        VerbGate.WarnIfUnavailable("docs.list", corelVersion);
         object documents = ComInvoker.Get(app, "Documents")!;
         int count = Convert.ToInt32(ComInvoker.Get(documents, "Count"));
         if (count == 0)
@@ -108,8 +109,9 @@ public static class DocsCommands
         return 0;
     }
 
-    private static int Active(object app)
+    private static int Active(object app, string? corelVersion)
     {
+        VerbGate.WarnIfUnavailable("docs.active", corelVersion);
         object? activeDoc = ComInvoker.Get(app, "ActiveDocument");
         if (activeDoc is null)
         {
