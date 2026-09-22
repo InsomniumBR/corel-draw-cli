@@ -1,7 +1,13 @@
-# hello-rectangle.cdx - minimal example script.
+# hello-rectangle.cdx - minimal example script, demonstrating --vars.
 # Same grammar as the interactive shell, one command per line, no `corel` prefix.
-# Run with: corel script run scripts/samples/hello-rectangle.cdx
+#
+# Run with defaults:
+#   corel script run scripts/samples/hello-rectangle.cdx --vars WIDTH=12,HEIGHT=19,UNIT=in
+#
+# Any {PLACEHOLDER} here is substituted from --vars KEY=VALUE,... before running - try
+# a different size, e.g. --vars WIDTH=8,HEIGHT=10,UNIT=in
 
-page size --width 12 --height 19 --unit in
-shape create-rect --left 0 --top 19 --right 3 --bottom 0
+doc new
+page size --width {WIDTH} --height {HEIGHT} --unit {UNIT}
+shape create-rect --left 0 --top {HEIGHT} --right {WIDTH} --bottom 0 --unit {UNIT}
 shape list

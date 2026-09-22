@@ -98,7 +98,7 @@ corel raw set <dotted.path> <value>
 corel raw call <dotted.path> [args...]           # pass the literal string `null` for
                                                   # an omitted optional COM parameter
 
-corel script run <file.cdx> [--output <path>] [--force]  # run a script
+corel script run <file.cdx> [--vars K=V,K2=V2] [--force]  # run a script
 corel shell                                      # interactive REPL
 
 corel detect / corel schema generate             # (re-)run first-time setup
@@ -124,6 +124,17 @@ generated capability manifest first (`corel schema generate`, then read
 `%LOCALAPPDATA%\corel-draw-cli\schemas\corel-<version>.json`) so you're calling a
 member that's actually confirmed to exist, with its real parameter names.
 
+### Script variables (`--vars`)
+
+Any `.cdx` script can reference `{PLACEHOLDER}` tokens anywhere in any line (not just a
+save path) — `corel script run <file.cdx> --vars KEY=VALUE,KEY2=VALUE2,...` replaces
+every occurrence before running. This is generic, not special-cased for output paths:
+parameterize a page size, a unit, anything the script needs (see
+`scripts/samples/hello-rectangle.cdx` for a `{WIDTH}`/`{HEIGHT}`/`{UNIT}` example).
+If a script references a placeholder that wasn't provided, the run is rejected up
+front — listing every missing name — rather than substituting nothing and failing
+confusingly partway through.
+
 ## Building a layout — the recommended agent workflow
 
 1. **Compute every rectangle's coordinates up front**, in a scratch calculation, before
@@ -133,11 +144,11 @@ member that's actually confirmed to exist, with its real parameter names.
    explicitly what's wanted (see `scripts/samples/` for both variants).
 2. Write one `.cdx` script: `doc new`, `page size` (a size reference, useful as an
    anchor even when the actual shapes extend beyond it), one `shape create-rect` line
-   per rectangle, then `doc save --as "${OUTPUT}"` — use the `${OUTPUT}` token rather
-   than hardcoding a path, so the same script is reusable with any destination.
-3. `corel script run <file>.cdx --output <path>` it (directory must already exist —
-   omitting `--output` when the script uses `${OUTPUT}` is rejected up front, before
-   anything runs).
+   per rectangle, then `doc save --as "{OUTPUT}"` — use a `{PLACEHOLDER}` rather than
+   hardcoding a path, so the same script is reusable with any destination.
+3. `corel script run <file>.cdx --vars OUTPUT=<path>` it (directory must already
+   exist — omitting a placeholder the script actually uses is rejected up front,
+   before anything runs).
 4. **Verify by reading the data back — don't just trust the command output.** Open the
    saved file (or use the still-open document) and check actual shape positions/sizes:
    ```

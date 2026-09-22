@@ -7,7 +7,7 @@
 # page and is expected to extend beyond the page boundary - that's by design.
 #
 # Run with an output path (the target directory must already exist):
-#   corel script run scripts/samples/same-size-combination-12x19.cdx --output "C:\path\to\Same-Size-Combination-12x19.cdr"
+#   corel script run scripts/samples/same-size-combination-12x19.cdx --vars OUTPUT="C:\path\to\Same-Size-Combination-12x19.cdr"
 
 doc new
 page size --width 12 --height 19 --unit in
@@ -31,4 +31,4 @@ shape create-rect --left 44.053 --top 29.688 --right 56.053 --bottom 10.688
 # Column 5 (1 cell)
 shape create-rect --left 58.737 --top 40.375 --right 70.737 --bottom 21.375
 
-doc save --as "${OUTPUT}"
+doc save --as "{OUTPUT}"

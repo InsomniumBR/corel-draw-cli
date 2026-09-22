@@ -160,28 +160,36 @@ prints a warning at the point it runs).
 > ChemDraw's molecule format). Unlikely to collide in practice for this niche use, but
 > worth knowing if you have those tools installed too.
 
+### Variables (`--vars`)
+
+Any `.cdx` script can reference `{PLACEHOLDER}` tokens anywhere in any line — not just
+in a save path. Pass their values with `--vars KEY=VALUE,KEY2=VALUE2,...`:
+
+```powershell
+corel script run some-script.cdx --vars WIDTH=12,HEIGHT=19,OUTPUT="C:\path\to\file.cdr"
+```
+
+If a script references a placeholder that wasn't provided, the run is rejected up
+front, listing exactly which ones are missing — same fail-before-doing-anything
+philosophy as the preflight check below — rather than substituting nothing and
+producing a confusing failure partway through.
+
 ### Samples
 
 `scripts/samples/` has complete, verified example scripts:
 
 | Script | Builds |
 |---|---|
-| `hello-rectangle.cdx` | A minimal single-rectangle example |
-| `outer-aligned-12x19.cdx` | An 8-rectangle gallery-wall layout, 4 alternating columns, anchored so the biggest rectangles are exactly 12×19in and the rest scale proportionally from that anchor (the full arrangement is ~55.5×30.8in — much bigger than the 12×19 page, which is just a size reference, not a bounding box) |
-| `same-size-combination-12x19.cdx` | A 9-rectangle symmetric diamond where every rectangle is the same exact size (12×19in), same anchor-not-bounding-box approach |
-
-The two gallery-wall samples end with `doc save --as "${OUTPUT}"` — pass the real path
-with `--output` (the target directory must already exist):
+| `hello-rectangle.cdx` | A minimal single-rectangle example, parameterized by `{WIDTH}`/`{HEIGHT}`/`{UNIT}` |
+| `outer-aligned-12x19.cdx` | An 8-rectangle gallery-wall layout, 4 alternating columns, anchored so the biggest rectangles are exactly 12×19in and the rest scale proportionally from that anchor (the full arrangement is ~55.5×30.8in — much bigger than the 12×19 page, which is just a size reference, not a bounding box); needs `--vars OUTPUT=<path>` |
+| `same-size-combination-12x19.cdx` | A 9-rectangle symmetric diamond where every rectangle is the same exact size (12×19in), same anchor-not-bounding-box approach; needs `--vars OUTPUT=<path>` |
 
 ```powershell
-corel script run scripts/samples/outer-aligned-12x19.cdx --output "C:\path\to\Outer-Aligned-12x19.cdr"
+corel script run scripts/samples/hello-rectangle.cdx --vars WIDTH=12,HEIGHT=19,UNIT=in
+corel script run scripts/samples/outer-aligned-12x19.cdx --vars OUTPUT="C:\path\to\Outer-Aligned-12x19.cdr"
 ```
 
-`${OUTPUT}` is a general substitution token any `.cdx` script can use anywhere in any
-line (not just in a save path) — `corel script run` replaces every occurrence with
-`--output`'s value before running. If a script uses `${OUTPUT}` and `--output` is
-omitted, the run is rejected up front (same fail-before-doing-anything philosophy as
-the preflight check below), rather than saving somewhere unexpected.
+(The target directory in `OUTPUT` must already exist.)
 
 ### Macros
 

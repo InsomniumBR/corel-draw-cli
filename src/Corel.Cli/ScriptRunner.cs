@@ -13,9 +13,7 @@ namespace Corel.Cli;
 /// </summary>
 public static class ScriptRunner
 {
-    private const string OutputPlaceholder = "${OUTPUT}";
-
-    public static int Run(string path, object app, string? corelVersion, string? output, bool force)
+    public static int Run(string path, object app, string? corelVersion, IReadOnlyDictionary<string, string> vars, bool force)
     {
         if (!File.Exists(path))
         {
@@ -28,14 +26,14 @@ public static class ScriptRunner
             .Select(l => l.Trim())
             .Where(l => l.Length > 0 && !l.StartsWith('#'))];
 
-        string? substitutionError = ValidateOutputSubstitution(rawLines, output);
-        if (substitutionError is not null)
+        string? varsError = ScriptVars.Validate(rawLines, vars);
+        if (varsError is not null)
         {
-            Console.Error.WriteLine(substitutionError);
+            Console.Error.WriteLine(varsError);
             return 1;
         }
 
-        List<string[]> lines = [.. ApplyOutputSubstitution(rawLines, output).Select(Repl.Tokenize)];
+        List<string[]> lines = [.. ScriptVars.Apply(rawLines, vars).Select(Repl.Tokenize)];
 
         List<(string[] Tokens, AvailabilityResult Result)> incompatible = Preflight(lines, corelVersion);
         if (incompatible.Count > 0)
@@ -76,26 +74,6 @@ public static class ScriptRunner
 
         return 0;
     }
-
-    /// <summary>
-    /// Returns an error message if the script references ${OUTPUT} without --output
-    /// having been given, or null if it's fine to proceed.
-    /// </summary>
-    internal static string? ValidateOutputSubstitution(IEnumerable<string> rawLines, string? output)
-    {
-        bool usesPlaceholder = rawLines.Any(l => l.Contains(OutputPlaceholder, StringComparison.Ordinal));
-        if (usesPlaceholder && output is null)
-        {
-            return $"This script uses {OutputPlaceholder} but no --output <path> was given. " +
-                   "Pass --output, or edit the script to hardcode a path.";
-        }
-        return null;
-    }
-
-    internal static IEnumerable<string> ApplyOutputSubstitution(IEnumerable<string> rawLines, string? output)
-        => output is null
-            ? rawLines
-            : rawLines.Select(l => l.Replace(OutputPlaceholder, output, StringComparison.Ordinal));
 
     private static List<(string[] Tokens, AvailabilityResult Result)> Preflight(List<string[]> lines, string? corelVersion)
     {

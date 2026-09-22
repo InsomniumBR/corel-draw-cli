@@ -8,18 +8,19 @@ if (args.Length == 0)
     Console.WriteLine("Commands: detect, schema generate, raw <get|set|call>, page size,");
     Console.WriteLine("          shape <create-rect|list|delete>, docs <list|use|active>,");
     Console.WriteLine("          doc <new|save [--as path]>, macro install --name N --file F.bas,");
-    Console.WriteLine("          script run <file.cdx> [--output path] [--force], shell");
+    Console.WriteLine("          script run <file.cdx> [--vars K=V,K2=V2] [--force], shell");
     return 1;
 }
 
 (string[] afterVersion, string? corelVersion) = ExtractGlobalFlag(args, "--corel-version");
-(string[] afterOutput, string? output) = ExtractGlobalFlag(afterVersion, "--output");
-(string[] rest, bool force) = ExtractBoolFlag(afterOutput, "--force");
+(string[] afterVars, string? varsRaw) = ExtractGlobalFlag(afterVersion, "--vars");
+(string[] rest, bool force) = ExtractBoolFlag(afterVars, "--force");
+Dictionary<string, string> vars = ScriptVars.Parse(varsRaw);
 
 using var host = new StaThreadHost();
 try
 {
-    return host.Invoke(() => Run(rest, corelVersion, output, force));
+    return host.Invoke(() => Run(rest, corelVersion, vars, force));
 }
 catch (Exception ex)
 {
@@ -27,7 +28,7 @@ catch (Exception ex)
     return 1;
 }
 
-static int Run(string[] args, string? corelVersion, string? output, bool force)
+static int Run(string[] args, string? corelVersion, Dictionary<string, string> vars, bool force)
 {
     if (args[0] == "shell")
     {
@@ -39,11 +40,11 @@ static int Run(string[] args, string? corelVersion, string? output, bool force)
     {
         if (args.Length < 3)
         {
-            Console.Error.WriteLine("Usage: corel script run <file.cdx> [--output path] [--force]");
+            Console.Error.WriteLine("Usage: corel script run <file.cdx> [--vars K=V,K2=V2] [--force]");
             return 1;
         }
         (object scriptApp, string? scriptVersion) = Connect(corelVersion);
-        return ScriptRunner.Run(args[2], scriptApp, scriptVersion, output, force);
+        return ScriptRunner.Run(args[2], scriptApp, scriptVersion, vars, force);
     }
 
     return CommandDispatcher.Dispatch(args, () => Connect(corelVersion));
