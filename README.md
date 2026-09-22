@@ -78,6 +78,9 @@ Working on the CLI itself instead of just using it? Run straight from source:
 |---|---|
 | `corel doc new` | Create a blank document |
 | `corel doc save [--as <path>] [--embed-vba]` | Save (`SaveAs` when `--as` is given; target directory must already exist). `--embed-vba` also embeds the active document's VBA project (installed macros) in the saved file - off by default |
+| `corel doc export --as <path> --format png\|jpg\|svg\|pdf [--width W --height H] [--dpi D]` | Export the active document. `pdf` calls `PublishToPDF` directly; the other formats crop to the drawing's own object extent (not the blank page canvas) - `--width`/`--height` scale that extent (aspect preserved), `--dpi` sets the resolution (default 300) |
+| `corel doc undo [--levels N]` | Undo the last N edits on the active document (default 1) |
+| `corel doc redo [--levels N]` | Redo the last N undone edits on the active document (default 1) |
 | `corel docs list` | List open documents; marks the active one |
 | `corel docs use <name\|index>` | Make a document active (calls its real `Activate()`); errors instead of guessing if a name matches more than one open document - use the index shown by `docs list` to disambiguate |
 | `corel docs active` | Print the active document's name |
