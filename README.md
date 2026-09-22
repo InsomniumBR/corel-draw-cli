@@ -87,9 +87,15 @@ Working on the CLI itself instead of just using it? Run straight from source:
 | `corel shape list` | List shapes on the active layer |
 | `corel shape delete --index N` | Delete a shape by its 1-based position (see `shape list`) |
 | `corel macro install --name <Module> --file <path.bas>` | Inject VBA source into the active document's own VBA project |
+| `corel help [command]` | Full usage for everything, or one command — never connects to COM |
 
 Unit names accepted anywhere a `--unit` flag appears: `in`, `mm`, `cm`, `pt`, `px`, `ft`,
 `yd`, `pica` (and a few long-form aliases).
+
+`corel` with no arguments prints the same overview and exits 0 — it's a deliberate
+"show usage", not an error, so it works as an install check. `corel --help`, `corel -h`
+and `corel <command> --help` all work too. Help, unknown commands and malformed commands
+are all answered without attaching to CorelDRAW.
 
 ### The `raw` escape hatch
 
@@ -131,7 +137,9 @@ corel> exit
 ```
 
 One persistent connection for the whole session — state (like which document is
-active) carries across commands, same as it would inside CorelDRAW itself.
+active) carries across commands, same as it would inside CorelDRAW itself. Every
+command is available here, including `script run`. The session exits with the status of
+the last command it ran, so a piped session reports a real exit code.
 
 ### Scripts (`.cdx`)
 
@@ -149,12 +157,55 @@ shape list
 corel script run scripts/samples/hello-rectangle.cdx
 ```
 
-Before running anything, the script is **preflighted** against the active CorelDRAW
-version's cached capability manifest: every line is resolved to its underlying verb and
-checked for availability. If any command isn't present in that version's object model,
-the whole run is reported and aborted up front — you don't find out three commands in
-that something's missing. Pass `--force` to run anyway (each unavailable command still
-prints a warning at the point it runs).
+Quote paths with spaces exactly like a shell would. An unterminated quote is an error;
+backslash is never an escape (Windows paths are full of them), so a literal `"` is
+written as a doubled quote inside a quoted segment: `"say ""hi"""`.
+
+#### Preflight
+
+Everything below runs **before line 1 executes and before any COM connection is made**,
+so a bad script never half-mutates a document and never launches CorelDRAW. Blocking
+failures are reported all at once, with their real line number in the file:
+
+| Check | Overridable with `--force`? |
+|---|---|
+| The `.cdx` file exists | no |
+| Every `{PLACEHOLDER}` has a value (all missing ones listed at once) | no |
+| Every line tokenizes (no unterminated quote) | no |
+| Every line is a known command with a known subcommand | no |
+| Required flags present, no unknown/repeated flags, `--width`/`--height` together | no |
+| Flag values are the right shape (number, whole number, known unit, non-empty path) | no |
+| A `macro install --file` source actually exists | no |
+| Safety screening (below) | **yes** |
+| Every mapped verb exists in the target version's cached capability manifest | **yes** |
+
+`raw` is the deliberate exception to structural validation: only its own fixed grammar
+(`get`/`set`/`call` plus the right number of operands) is checked, because its dotted
+path and call arguments are arbitrary object-model members with arbitrary arity and
+types. Confirming *those* is what the capability-manifest check already does.
+
+#### Safety screening
+
+Scripts are screened at load time for operations outside drawing automation — a script
+may have been generated or fetched rather than typed. A hit aborts the run with every
+violation listed; `--force` waives it.
+
+Checked: `raw` dotted paths whose whole segment is a denylisted member (`Shell`, `Run`,
+`Exec`, `CreateObject`, `GetObject`, `WScript`, `FileSystemObject`, `Kill`, `RmDir`,
+`SetAttr`, the `Reg*`/`*Setting` registry calls, and the `VBE`/`VBProjects`/
+`VBComponents`/`CodeModule`/`AddFrom*` VBA-injection back door, among others); arguments
+that are literally a shell/filesystem automation ProgID; the **contents** of a
+`macro install --file` `.bas`, scanned textually for the same constructs plus `Declare`
+(Win32 P/Invoke from VBA); control characters in any argument; and `--as`/`--file` path
+values containing a `..` traversal segment or characters the OS rejects. Variables are
+substituted before screening, so a `--vars` value cannot smuggle any of it past.
+
+Deliberately out of scope: shell metacharacter injection (no argument ever reaches a
+shell — every call goes straight to COM), allow-listing which directories a script may
+write to (the tool has no notion of a project root), semantic analysis of VBA (the scan
+is textual, so a denylisted word in a comment still trips it), and one-shot/REPL
+commands (screening is a property of running a script *file*). `corel help` documents
+the full grammar; `AGENTS.md` lists the exact denylist.
 
 > Note: `.cdx` is also used elsewhere (Visual FoxPro/dBase compound index files,
 > ChemDraw's molecule format). Unlikely to collide in practice for this niche use, but
@@ -170,9 +221,12 @@ corel script run some-script.cdx --vars WIDTH=12,HEIGHT=19,OUTPUT="C:\path\to\fi
 ```
 
 If a script references a placeholder that wasn't provided, the run is rejected up
-front, listing exactly which ones are missing — same fail-before-doing-anything
-philosophy as the preflight check below — rather than substituting nothing and
-producing a confusing failure partway through.
+front (in dark yellow), listing exactly which ones are missing — same
+fail-before-doing-anything philosophy as the rest of preflight — rather than
+substituting nothing and producing a confusing failure partway through.
+
+`--vars` and `--force` belong to `script run`, not to the CLI as a whole, so a command
+that happens to take a flag of the same name is never robbed of it.
 
 ### Samples
 
@@ -219,8 +273,10 @@ If you have multiple CorelDRAW versions installed, pin one with `--corel-version
 corel --corel-version 17 raw get ActiveDocument.Name
 ```
 
-Omit it to use the default (the first version `detect` found; change it by re-running
-`detect`, or manually editing `installs.json`'s `defaultVersion`).
+`--corel-version` is recognised **only before the command word** — that keeps it
+unambiguous, so no command's own flags can be eaten by global parsing. Omit it to use
+the default (the first version `detect` found; change it by re-running `detect`, or
+manually editing `installs.json`'s `defaultVersion`).
 
 ## Extending verb coverage
 

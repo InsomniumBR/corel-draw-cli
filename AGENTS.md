@@ -31,8 +31,11 @@ slower for a sequence).
 
 1. **CorelDRAW must already be open** on the machine you're running on. This tool does
    not launch it.
-2. Check `corel` is installed and on PATH: run `corel` with no arguments. If that
-   fails, it's not installed yet:
+2. Check `corel` is installed and on PATH: run `corel` with no arguments. It prints the
+   command overview and **exits 0** — that is a successful install check, not an error.
+   `corel help`, `corel --help` and `corel <command> --help` do the same thing in more
+   detail, and none of them attach to (or launch) CorelDRAW. If the binary isn't found,
+   it's not installed yet:
    ```powershell
    cd S:\GIT\corel-draw-cli   # or wherever this repo is cloned
    dotnet pack src/Corel.Cli/Corel.Cli.csproj -c Release -o ./nupkg
@@ -70,7 +73,12 @@ slower for a sequence).
   closed. Create the directory first if you're not sure it exists.
 - **Quote paths with spaces in `.cdx` scripts** exactly like a shell would:
   `doc save --as "C:\Users\name\My Documents\file.cdr"`. The script tokenizer honors
-  double quotes and strips them.
+  double quotes and strips them. An **unterminated quote is an error**, not a silently
+  accepted line. Backslash is never an escape (Windows paths are full of them) — to put
+  a literal `"` in an argument, double it inside a quoted segment: `"say ""hi"""`.
+- **`--corel-version N` must come before the command**: `corel --corel-version 17 raw get
+  ActiveDocument.Name`. Every other flag belongs to the command it's written on, so a
+  command's own `--force`/`--vars` is never mistaken for a global one.
 - Only **CorelDRAW X7** is verified on real hardware. The tool is built to work across
   versions via runtime reflection against whatever's actually installed (no hardcoded
   per-version assumptions), but treat other versions as best-effort until verified.
@@ -101,11 +109,21 @@ corel raw call <dotted.path> [args...]           # pass the literal string `null
 corel script run <file.cdx> [--vars K=V,K2=V2] [--force]  # run a script
 corel shell                                      # interactive REPL
 
+corel help [command]                             # full usage, never connects to COM
 corel detect / corel schema generate             # (re-)run first-time setup
 ```
 
 Global flag: `--corel-version N` pins a specific installed version if more than one is
-registered; omit to use the detected default.
+registered; omit to use the detected default. It is recognised **only before the command
+word**.
+
+Every command above is reachable from all three drivers — one-shot, `corel shell`, and a
+`.cdx` script — including `script run` (a script may run another script). The one
+exception is `shell` itself, which owns the process's stdin and can only be started from
+a terminal.
+
+`corel shell` exits with the status of the last command it ran, so a piped session
+(`Get-Content cmds.txt | corel shell`) reports a real exit code.
 
 ### The `raw` escape hatch
 
@@ -132,8 +150,75 @@ every occurrence before running. This is generic, not special-cased for output p
 parameterize a page size, a unit, anything the script needs (see
 `scripts/samples/hello-rectangle.cdx` for a `{WIDTH}`/`{HEIGHT}`/`{UNIT}` example).
 If a script references a placeholder that wasn't provided, the run is rejected up
-front — listing every missing name — rather than substituting nothing and failing
-confusingly partway through.
+front — listing every missing name, in dark yellow — rather than substituting nothing
+and failing confusingly partway through.
+
+### What preflight actually checks, and when it runs
+
+Everything below runs **before line 1 executes and before any COM connection is made**,
+so a bad script never half-mutates a document and never launches CorelDRAW:
+
+| Check | Overridable with `--force`? |
+|---|---|
+| The `.cdx` file exists | no |
+| Every `{PLACEHOLDER}` has a value (all missing ones listed at once) | no |
+| Every line tokenizes (no unterminated quote) | no |
+| Every line is a known command with a known subcommand | no |
+| Required flags present, no unknown/repeated flags, `--width`/`--height` together | no |
+| Flag values are the right shape (number, whole number, known unit, non-empty path) | no |
+| A `macro install --file` source actually exists | no |
+| Safety screening (see below) | **yes** |
+| Every mapped verb exists in the target version's cached capability manifest | **yes** |
+
+Blocking failures are reported with their real line number in the file (comments and
+blank lines counted), all of them at once, not just the first.
+
+`raw` is the deliberate exception to structural validation: only its own fixed grammar
+(`get`/`set`/`call` plus the right number of operands) is checked. Its dotted path and
+call arguments are arbitrary object-model members with arbitrary arity and types — the
+only thing that could confirm them is the capability manifest, which is exactly what the
+availability check already does separately.
+
+### Safety screening
+
+Scripts are screened at load time for operations outside drawing automation. A hit
+aborts the run with every violation listed; `--force` waives it, same convention as the
+availability check.
+
+**Checked:**
+
+- A `raw` dotted path whose *whole segment* (case-insensitive) is one of: `Shell`,
+  `ShellExecute`, `Run`, `RunMacro`, `Exec`, `Execute`, `CreateObject`, `GetObject`,
+  `WScript`, `WshShell`, `FileSystemObject`, `Kill`, `RmDir`, `SetAttr`, `RegWrite`,
+  `RegRead`, `RegDelete`, `SaveSetting`, `GetSetting`, `DeleteSetting`, `VBE`,
+  `VBProjects`, `VBComponents`, `CodeModule`, `AddFromString`, `AddFromFile`. Whole-
+  segment matching means a CorelDRAW member that merely *contains* one of these
+  (`ShellSortOrder`) is unaffected.
+- Any argument that is literally a shell/filesystem automation ProgID: `WScript.Shell`,
+  `Shell.Application`, `Scripting.FileSystemObject`, `MSXML2.XMLHTTP`,
+  `InternetExplorer.Application`.
+- The **contents** of a `macro install --file <x.bas>`, scanned textually for
+  `Shell`, `CreateObject`, `GetObject`, `Kill`, `RmDir`, `SetAttr`, `RegWrite`,
+  `RegRead`, `RegDelete`, `SaveSetting`, `GetSetting`, `DeleteSetting`, `Declare`
+  (Win32 P/Invoke from VBA).
+- Any argument containing a control character.
+- `--as` / `--file` path values: rejected for a `..` traversal segment, characters the
+  OS rejects in a path, or emptiness.
+
+Variables are substituted **before** screening, so a `--vars` value cannot smuggle a
+path or a denylisted member past it.
+
+**Deliberately out of scope** (say so rather than assume it's covered):
+
+- Shell metacharacter "injection" — no argument ever reaches a shell; every call goes
+  straight to COM.
+- Allow-listing which directories a script may write to — the tool has no notion of a
+  project root, so `..` traversal is refused but an absolute path anywhere is allowed.
+- Semantic analysis of VBA — the `.bas` scan is textual, so a denylisted word inside a
+  comment or a string literal still trips it (use `--force`, or reword).
+- One-shot commands and the REPL are **not** screened. Screening is a property of
+  running a *script file*, which may have been generated or fetched; a command typed
+  directly at your own terminal is not an injection vector.
 
 ## Building a layout — the recommended agent workflow
 
@@ -178,7 +263,10 @@ If you're working on this repo's own source (not just using the built CLI):
   `requiresMember` must match real names from a generated capability manifest, not
   guessed.
 - **New curated commands** go in `src/Corel.Cli/Commands/` (one file per verb group),
-  wired into `src/Corel.Cli/CommandDispatcher.cs`.
+  wired into `src/Corel.Cli/CommandDispatcher.cs`, **and declared in
+  `src/Corel.Cli/CommandGrammar.cs`** — that one table is what help, structural
+  validation and the script preflight all read, so a command missing from it is rejected
+  as unknown, and a command whose flags are wrong there is validated wrongly everywhere.
 - **All COM calls must go through `Corel.Automation.ComInvoker`** (`Type.InvokeMember`
   with combined `BindingFlags.GetProperty | BindingFlags.InvokeMethod`) — never C#'s
   `dynamic` keyword against these COM objects; it's been empirically unreliable here.
