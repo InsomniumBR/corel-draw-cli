@@ -61,8 +61,8 @@ public static class ImageCommands
         double left, top, right, bottom;
         if (intoName is not null)
         {
-            container = FindShapeByName(layer, intoName)
-                ?? throw new InvalidOperationException($"No shape named '{intoName}' on the active layer.");
+            container = FindShapeByName(ShapeTargets.PageShapes(app), intoName)
+                ?? throw new InvalidOperationException($"No shape named '{intoName}' on the active page.");
             // Read the container's own bounds directly - already in the document's
             // current unit, so no conversion is needed to line the import up with it.
             left = Convert.ToDouble(ComInvoker.Get(container, "LeftX"));
