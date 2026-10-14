@@ -80,9 +80,10 @@ slower for a sequence).
 - **Shape indexes are page-wide and always shifting.** `--index`/`--indexes` is the
   1-based position `shape list` prints, counted over `ActivePage.Shapes` — every layer,
   not just the active one (the layer-scoped version silently listed a different set once
-  a second layer existed). Creation still targets the active layer. Indexes are z-order,
-  newest first, and anything that adds, deletes, duplicates, groups or reorders shapes
-  renumbers them: re-run `shape list` instead of reusing indexes computed earlier.
+  a second layer existed). `image import --into <shapeName>` looks up that name the same
+  way, page-wide. Creation still targets the active layer. Indexes are z-order, newest
+  first, and anything that adds, deletes, duplicates, groups or reorders shapes renumbers
+  them: re-run `shape list` instead of reusing indexes computed earlier.
 - **`shape align --to page` moves the set as one block**, so the whole bounding box lands
   on the page edge. The default, `--to shapes`, is the one that aligns each shape to the
   first of them. There is no working "align every shape to the page edge separately" —

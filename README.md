@@ -126,7 +126,8 @@ Unit names accepted anywhere a `--unit` flag appears: `in`, `mm`, `cm`, `pt`, `p
 Every `--index`/`--indexes` is the 1-based position `shape list` prints, counted over the
 **whole active page**, not the active layer — a document with more than one layer used to
 make the layer-scoped listing silently report a different set than the one you could see.
-Creation still goes to the active layer, because CorelDRAW's shape factories live there.
+`image import --into <shapeName>` looks up that name the same way, page-wide. Creation still
+goes to the active layer, because CorelDRAW's shape factories live there.
 Indexes are z-order, newest first, and any command that adds, removes, groups or reorders
 shapes renumbers them — re-run `shape list` rather than reusing indexes across commands.
 

@@ -114,9 +114,8 @@ public static class ImageCommands
         return 0;
     }
 
-    private static object? FindShapeByName(object layer, string name)
+    private static object? FindShapeByName(object shapes, string name)
     {
-        object shapes = ComInvoker.Get(layer, "Shapes")!;
         int count = Convert.ToInt32(ComInvoker.Get(shapes, "Count"));
         for (int i = 1; i <= count; i++)
         {
