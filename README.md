@@ -323,10 +323,12 @@ that happens to take a flag of the same name is never robbed of it.
 | `hello-rectangle.cdx` | A minimal single-rectangle example, parameterized by `{WIDTH}`/`{HEIGHT}`/`{UNIT}` |
 | `outer-aligned-12x19.cdx` | An 8-rectangle gallery-wall layout, 4 alternating columns, anchored so the biggest rectangles are exactly 12×19in and the rest scale proportionally from that anchor (the full arrangement is ~55.5×30.8in — much bigger than the 12×19 page, which is just a size reference, not a bounding box); needs `--vars OUTPUT=<path>` |
 | `same-size-combination-12x19.cdx` | A 9-rectangle symmetric diamond where every rectangle is the same exact size (12×19in), same anchor-not-bounding-box approach; needs `--vars OUTPUT=<path>` |
+| `badge-row.cdx` | Exercises the shape commands beyond `create-rect` - the other shape factories, `fill`/`outline`, and `align`/`distribute` over an index range - by laying out three badges, squaring them up, and labeling them; needs `--vars UNIT=in` |
 
 ```powershell
 corel script run scripts/samples/hello-rectangle.cdx --vars WIDTH=12,HEIGHT=19,UNIT=in
 corel script run scripts/samples/outer-aligned-12x19.cdx --vars OUTPUT="C:\path\to\Outer-Aligned-12x19.cdr"
+corel script run scripts/samples/badge-row.cdx --vars UNIT=in
 ```
 
 (The target directory in `OUTPUT` must already exist.)
